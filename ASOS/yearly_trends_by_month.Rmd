@@ -19,14 +19,6 @@ select_stations_path <- file.path(datadir, "select_stations.Rds")
 select_stations <- readRDS(select_stations_path)
 stids <- select_stations$stid
 
-# read data
-asos_path <- file.path(asos_select_adj_dir, "PAFA_hour.Rds")
-asos_station <- readRDS(asos_path)
-asos_station <- asos_station %>%
-  mutate(year = year(date), 
-         month = month(date),
-         day = day(date)) 
-
 # "Good' batch of sites (not missing large chunks of data)
 junk <- c("PADT", "PADU", "PAEC", "PAFE", "PAGS", 
           "PAIL", "PASD", "PASH", "PASM", "PATK")
@@ -34,7 +26,6 @@ stids <- stids[!stids %in% junk]
 
 #for(i in 1:length(stids)){
 for(i in 1:3){
-
   # read data
   asos_path <- file.path(asos_select_adj_dir, paste0(stids[i], "_hour.Rds"))
   asos_station <- readRDS(asos_path)

@@ -1,4 +1,5 @@
-# 
+# app for exploring the gappiness of wind data from the various
+#   ASOS stations in AK
 # 
 
 #-- Setup ---------------------------------------------------------------------
