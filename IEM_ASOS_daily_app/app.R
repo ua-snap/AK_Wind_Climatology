@@ -6,6 +6,7 @@
 library(dplyr)
 library(ggplot2)
 library(gridExtra)
+library(fread)
 
 # Work directory
 workdir <- file.path("C:/Users/Keal/Desktop/IARC/Wind_Climatology/")
