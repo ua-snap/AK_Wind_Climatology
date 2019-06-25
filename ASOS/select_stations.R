@@ -7,6 +7,7 @@ library(data.table)
 library(sf)
 library(USAboundaries)
 library(lubridate)
+library(dplyr)
 
 workdir <- file.path("C:/Users/Keal/Desktop/IARC/Wind_Climatology/")
 datadir <- file.path(workdir, "data")
@@ -47,8 +48,13 @@ select_stations <- inner_join(asos_select, stations, by = "stid") %>%
 select_stations_path <- file.path(datadir, "select_stations.Rds")
 saveRDS(select_stations, file = select_stations_path)
 
+
+# load select stations (if running separately)
+select_stations_path <- file.path(datadir, "select_stations.Rds")
+select_stations <- readRDS(select_stations_path)
+stids <- select_stations$stid
+
 alaska <- us_states(states = "AK", resolution = "high")
-ak_projection <- state_plane("AK")
 ak <- st_transform(alaska, 26935)
 theme_set(theme_bw())
 
@@ -68,3 +74,96 @@ p <- ggplot(data = ak) + geom_sf(fill = "cornsilk") +
 
 fig_path <- file.path(figdir, "AK_ASOS_avail_locations.png")
 ggsave(fig_path, plot = p, device = "png", width = 8, height = 6)
+
+
+
+
+# Wonky stations
+#   figure of select stations with gaps/odd behavior in time series
+# select stations
+select_stations_path <- file.path(datadir, "select_stations.Rds")
+select_stations <- readRDS(select_stations_path)
+
+sites <- as.data.frame(select_stations[, c("lon", "lat")])
+sites <- st_as_sf(sites, coords = c("lon", "lat"), crs = 4326)
+sites <- st_transform(sites, 26935)
+# wonky stations
+stids_w <- c("PADT", "PADU", "PAEC", "PAFE", "PAGS", 
+             "PAIL", "PASD", "PASH", "PASM", "PATK")
+sites_w <- select_stations %>% 
+  filter(stid %in% stids_w) %>% 
+  select(lon, lat) %>%
+  as.data.frame()
+
+sites_w <- st_as_sf(sites_w, coords = c("lon", "lat"), crs = 4326)
+sites_w <- st_transform(sites_w, 26935)
+
+p <- ggplot(data = ak) + geom_sf(fill = "cornsilk") +
+  geom_sf(data = sites, shape = 21, fill = "darkred") + 
+  geom_sf(data = sites_w, shape = 21, size = 2, fill = "cyan") +
+  #geom_text(aes(label = stids_w)) +
+  ggtitle("AK ASOS Stations Selected For Climatology")
+
+
+
+
+# attempting to label stations
+#   figure of select stations with gaps/odd behavior in time series
+# select stations
+select_stations_path <- file.path(datadir, "select_stations.Rds")
+select_stations <- readRDS(select_stations_path)
+
+sites <- as.data.frame(select_stations[, c("stid", "lon", "lat")])
+sites <- st_as_sf(sites, coords = c("lon", "lat"), crs = 4326)
+sites <- st_transform(sites, 26935)
+# wonky stations
+stids_w <- c("PADT", "PADU", "PAEC", "PAFE", "PAGS", 
+             "PAIL", "PASD", "PASH", "PASM", "PATK")
+sites_w <- select_stations %>% 
+  filter(stid %in% stids_w) %>% 
+  select(lon, lat) %>%
+  as.data.frame()
+
+sites_w <- st_as_sf(sites_w, coords = c("lon", "lat"), crs = 4326)
+sites_w <- st_transform(sites_w, 26935)
+
+p <- ggplot(data = ak) + geom_sf(fill = "cornsilk") +
+  geom_sf(data = sites, shape = 21, fill = "darkred") + 
+  #geom_sf(data = sites_w, shape = 21, size = 2, fill = "cyan") +
+  #geom_text(aes(label = stids_w)) +
+  ggtitle("AK ASOS Stations Selected For Climatology")
+
+p + geom_sf_label(data = sites, aes(label = stid), 
+                 size = 2, 
+                 label.padding = unit(0.1, "lines"))
+
+# Determining which sites belong to which region
+# north and west
+n_stids <- c("PALU", "PABR", "PASC", "PABA", "PAOT",
+             "PASH", "PATC", "PAOM", "PAUN")
+# interior
+int_stids <- c("PABT", "PAPR", "PFYU", "PAIM", "PATA",
+               "PAGA", "PARY", "PAMH", "PAFA", "PAFB",
+               "PAEI", "PABI", "PAOR", "PAMC", "PATL",
+               "PANN")
+# south central
+sc_stids <- c("PADT", "PAEC", "PAMX", "PAGK", "PATK", 
+              "PASW", "PANC", "PAAQ", "PAEN", "PAWD",
+              "PAHO", "PAMR", "PAED", "PAVD", "PACV",
+              "PAMD")
+# southwest
+sw_stids <- c("PADQ", "PAIL", "PASV", "PANI", "PASM",
+              "PACZ", "PABE", "PAEH", "PADL", "PAKN",
+              "PAPH", "PASD", "PACD", "PADU", "PASN", 
+              "PADK", "PASY")
+#southeast
+se_stids <- c("PAYA", "PAGY", "PAJN", "PAEL", "PAGS",
+              "PASI", "PAFE", "PAPG", "PAWG", "PANT", 
+              "PAKT")
+# make df and save
+regions <- c(rep("North/Northwest", length(n_stids)), 
+             rep("Interior", length(int_stids)),
+             rep("Southwest", length(sw_stids)),
+             rep("Southcentral", length(sc_stids)), 
+             rep("Southeast", length(se_stids)))
+select_stids_regions <- data.frame(stid = c(n_stids, int_stids, sc_stids, sw_stids, se_stids))

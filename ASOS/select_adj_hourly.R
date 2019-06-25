@@ -1,5 +1,7 @@
 # script is for selecting, adjusting, and saving the hourly
 #   data to be used in the climatology development
+# Also included is a loop to save the adjusted individual hour data
+#   as csvs
 
 # Custom quantile mapping function
 #   Values adjusted below zero set to zero
@@ -263,3 +265,20 @@ for(i in 37: no_stids) {
 cpts_df$cpts <- (!is.na(cpts_df$cp1)) + (!is.na(cpts_df$cp2))
 cpts_path <- file.path(datadir, newfolder, "cpts_df.Rds")
 saveRDS(cpts_df, cpts_path)
+
+
+
+
+
+
+
+# Loop through saved Rds station data and save as csv
+stids <- select_stations$stid
+for(i in 1: length(stids)){
+  station_rds_path <- file.path(datadir, newfolder, paste0(stids[i], "_hour.Rds"))
+  station_csv_path <- file.path(datadir, newfolder, paste0(stids[i], "_hour.csv"))
+  df <- readRDS(station_rds_path) %>% 
+    as.data.frame() %>%
+    select(station, valid, drct, sped, sped_adj)
+  write.csv(df, station_csv_path, row.names = FALSE)
+}
