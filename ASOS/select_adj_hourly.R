@@ -45,7 +45,7 @@ library(dplyr)
 library(lubridate)
 library(changepoint)
 
-workdir <- file.path("C:/Users/Keal/Desktop/IARC/Wind_Climatology/")
+workdir <- getwd()
 datadir <- file.path(workdir, "data")
 # raw hourly data
 asos_path <- file.path(datadir, "AK_ASOS_allsites_wind_19700101_to_20190528.txt")
@@ -83,7 +83,7 @@ noAdjust <- function(df) {
 # changepoint tolerance
 alpha <- 0.01
 conf <- 1 - alpha
-for(i in 37: no_stids) {
+for(i in 1:no_stids) {
   asos_station <- asos_daily %>% filter(stid == stids[i]) %>%
     mutate(month = format(ymd(date), format = "%Y-%m"), one = 1) %>% 
     group_by(month) %>% summarise(avg_sped_mo = mean(avg_sped)) %>%

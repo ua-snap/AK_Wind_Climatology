@@ -10,7 +10,7 @@ library(dplyr)
 library(ggplot2)
 library(gridExtra)
 
-opts_knit$set(root.dir = "../..")
+opts_knit$set(root.dir = "../")
 
 opts_chunk$set(echo = FALSE,
                fig.height = 3, fig.width = 8,
@@ -134,7 +134,7 @@ for(i in 1) {
 
 ```{r move}
 # move output file to document directory
-files <- list.files(file.path(workdir, "code/ASOS"))
+files <- list.files(file.path(workdir, "code"))
 index <- grep("pdf", files)
 file.rename(file.path("code", files[index]),
             file.path("documents", files[index]))
