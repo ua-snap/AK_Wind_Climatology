@@ -19,8 +19,8 @@ datadir <- file.path(workdir, "data")
 asos_select_adj_dir <- file.path(datadir, "AK_ASOS_allsites_wind_19800101_to_20150101_adj")
 
 # changepoints
-cpts_path <- file.path(asos_select_adj_dir, "cpts_df.Rds")
-cpts_df <- readRDS(cpts_path)
+#cpts_path <- file.path(asos_select_adj_dir, "cpts_df.Rds")
+#cpts_df <- readRDS(cpts_path)
 # select stations meta
 select_stations_path <- file.path(datadir, "select_stations.Rds")
 select_stations <- readRDS(select_stations_path)
