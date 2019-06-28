@@ -37,7 +37,8 @@ for(i in 1:n_stids){
   asos_station <- asos_station %>% 
     group_by(stid, date) %>%
     summarise(obs = sum(one)/24, 
-              avg_sped = mean(sped))
+              avg_sped = mean(sped)) %>%
+    select(stid, date, obs, avg_sped)
   # append to daily
   asos_daily <- bind_rows(asos_daily, asos_station)
 }

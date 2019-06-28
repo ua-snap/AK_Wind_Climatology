@@ -13,7 +13,7 @@
 #   Indicate by color Tier 1 vs Tier 2
 # 
 # Output files:
-#   /data/AK_ASOS_daily_all_stations_19700101_to_20190528.Rds
+#   /data/AK_ASOS_select_stations.Rds
 #   /data/AK_ASOS_select_stations_19800101_to_20150101/"stid".Rds
 
 
@@ -37,15 +37,23 @@ asos_daily <- readRDS(asos_daily_path)
 # station meta data
 asos_meta_path <- file.path(datadir, "AK_ASOS_stations_meta.csv")
 stations <- read.csv(asos_meta_path, stringsAsFactors = FALSE)
-
+# stids in station meta data
+meta_stids <- unique(stations$stid)
 #------------------------------------------------------------------------------
 
 #-- Select Stations -----------------------------------------------------------
 # select data from chosen period (determined by examination of heatmap)
 start_date <- ymd("1980-01-01")
 end_date <- ymd("2015-01-01")
-asos_select <- asos_daily %>% filter(date >= start_date & 
+
+# Stids in raw for records
+raw_stids <- unique(asos_daily$stid)
+
+asos_daily <- asos_daily %>% filter(date >= start_date & 
                                        date <= end_date)
+
+# stids remaining after filtering to period
+period_stids <- unique(asos_daily$stid)
 
 # filter out sites that don't have observations spanning the period
 #   based on proportion of "successful" days, i.e. days with 
@@ -53,15 +61,15 @@ asos_select <- asos_daily %>% filter(date >= start_date &
 n <- 4
 p_succ <- n/24
 p_tot <- 0.75
-# tolerance for missing days
+# tolerance for missing days during target period
 miss_cut <- 2000
 # number of potential sampling days
 n_days <- as.numeric(end_date - start_date)
-asos_select <- asos_select %>% 
-  mutate(one = 1, succ = if_else(obs > p_succ, 1, 0))
+asos_daily <- asos_daily %>% 
+  mutate(succ = if_else(obs > p_succ, 1, 0))
 # determine percentage of successful sampling days and 
 #   how many days were missing
-stations <- asos_select %>% 
+stations <- asos_daily %>% 
   group_by(stid) %>% 
   summarise(prop_succ = sum(succ)/n_days,
             miss_days = n_days - n()) %>%
@@ -71,11 +79,28 @@ select_stations <- stations %>%
   # if more than 1825 missing days (5 years), call tier two
   mutate(tier = factor(if_else(miss_days >= miss_cut, 2, 1)))
 
+# stids remaining after filtering based on available data
+select_stids <- unique(select_stations$stid)
+
 # save both meta data frames, 
 select_stations_path <- file.path(datadir, "AK_ASOS_select_stations.Rds")
 saveRDS(select_stations, select_stations_path)
-all_stations_path <- file.path(datadir, "AK_ASOS_stations_meta_succ")
+# Stations df for stations found in Raw data with data from target period
+all_stations_path <- file.path(datadir, "AK_ASOS_stations_meta_succ.Rds")
 saveRDS(stations, all_stations_path)
+
+# save groups of stids and other criteria for later reporting
+stids_list <- list(meta = meta_stids, 
+                   raw = raw_stids,
+                   period = period_stids, 
+                   select = select_stids,
+                   min_obs_day_succ = n,
+                   p_succ = p_succ,
+                   p_tot = p_tot,
+                   miss_cut = miss_cut,
+                   n_days = n_days)
+stids_list_path <- file.path(datadir, "stids_list.Rds")
+saveRDS(stids_list, stids_list_path)
 
 #------------------------------------------------------------------------------
 
