@@ -1,19 +1,32 @@
-# script is for selecting, adjusting, and saving the hourly
-#   data to be used in the climatology development
-# Also included is a loop to save the adjusted individual hour data
-#   as csvs
+# Script summary
+#
+# Quantile Mapping
+#   Loop through daily summary and determine 0-2 changepoints
+#   Record dates, changepoints, means and sd's before and after
+#   Break data into segments, perform quantile mapping, and save
+#
+# Output files:
+#   /data/AK_ASOS_stations_adj/"stids"_adj.Rds
+#   /data/AK_ASOS_stations_adj_csv/"stids"_adj.csv
+#   /data/AK_ASOS_stations_adj/cpts_df.Rds
+
+
+#-- Setup ---------------------------------------------------------------------
+
 
 # Custom quantile mapping function
 #   Values adjusted below zero set to zero
 qMapWind <- function(obs, sim){
   require(ggplot2)
-  q_obs <- quantile(obs, seq(0, 1, length.out = 101), type = 8)
-  q_sim <- quantile(sim, seq(0, 1, length.out = 101), type = 8)
+  qn <- min(length(obs), length(sim))
+  q_obs <- quantile(obs, seq(0, 1, length.out = qn), type = 8)
+  q_sim <- quantile(sim, seq(0, 1, length.out = qn), type = 8)
   q_diff <- q_sim - q_obs
   # assign quantiles to observations
   qs <- unique(q_sim)
   q_t <- table(q_sim)
   q_ids <- c()
+  
   # loop through unique quantiles
   for(i in 1:length(qs)){
     if(i == 1){

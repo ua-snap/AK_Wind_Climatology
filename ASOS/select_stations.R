@@ -1,7 +1,3 @@
-# This script is for saving the metadata for the stations to be used 
-#   in the wind climatology generation, and for creation of the 
-#   visualization map of AK with the selected ASOS stations 
-
 # Script summary
 #
 # Select Stations & Data
@@ -9,12 +5,12 @@
 #   climatology from 1980-2015, filter data to this period
 #  Group into tiers - significant periods of missing data and not
 #   
-# AK Map Selected Stations
+# AK Map of Selected Stations
 #   Indicate by color Tier 1 vs Tier 2
 # 
 # Output files:
 #   /data/AK_ASOS_select_stations.Rds
-#   /data/AK_ASOS_select_stations_19800101_to_20150101/"stid".Rds
+#   /figures/AK_ASOS_select_locations.png
 
 
 
@@ -39,6 +35,7 @@ asos_meta_path <- file.path(datadir, "AK_ASOS_stations_meta.csv")
 stations <- read.csv(asos_meta_path, stringsAsFactors = FALSE)
 # stids in station meta data
 meta_stids <- unique(stations$stid)
+
 #------------------------------------------------------------------------------
 
 #-- Select Stations -----------------------------------------------------------
@@ -122,18 +119,81 @@ coords_2 <- select_stations %>%
   as.data.frame()
 coords_2 <- st_as_sf(coords_2, coords = c("lon", "lat"), crs = 4326)
 coords_2 <- st_transform(coords_2, 26935)
-# slightly adjusted coordinates for labels
-lab_coords <- select_stations %>% 
-  mutate(lat = lat + 0.3) %>%
-  select(stid, lon, lat) %>%
-  as.data.frame()
-lab_coords <- st_as_sf(lab_coords, coords = c("lon", "lat"), crs = 4326)
-lab_coords <- st_transform(lab_coords, 26935)
+
+# labelling: want to "repel" some labels and simply nudge others:
+repel_stids <- matrix(c("PAEL", 0.2, 0.2,
+                        "PAGS", 0.2, 0.2,
+                        "PAJN", 0.2, 0.2,
+                        "PASI", 0.2, 0.2,
+                        "PAPG", 0.2, 0.2,
+                        "PAWG", 0.2, 0.2,
+                        "PAKT", 0.2, 0.2,
+                        "PANT", 0.2, 0.2,
+                        "PADQ", 0.2, 0.2,
+                        "PAHO", 0.2, 0.2,
+                        "PAHN", 0.2, 0.2,
+                        "PAWD", 0.2, 0.2,
+                        "PAMD", 0.2, 0.2,
+                        "PAVD", 0.2, 0.2,
+                        "PACV", 0.2, 0.2,
+                        "PANC", 0.2, 0.2,
+                        "PAMR", 0.2, 0.2,
+                        "PAAQ", 0.2, 0.2,
+                        "PABI", 0.2, 0.2,
+                        "PANN", 0.2, 0.2,
+                        "PAFA", 0.2, 0.2,
+                        "PAFB", 0.2, 0.2,
+                        "PAEI", 0.2, 0.2,
+                        "PAPR", 0.2, 0.2,
+                        "PABT", 0.2, 0.2,
+                        "PAMX", 0.2, 0.2,
+                        "PAOR", 0.2, 0.2,
+                        "PABA", 0.2, 0.2, 
+                        "PASC", 0.2, 0.2,
+                        "PABR", 0.2, 0.2,
+                        "PALU", -1000, 50,
+                        "PAOT", 0.2, 0.2,
+                        "PASH", 0.2, 0.2,
+                        "PATC", 0.2, 0.2,
+                        "PAOM", 0.2, 0.2, 
+                        "PAUN", 0.2, 0.2,
+                        "PACZ", 0.2, 0.2,
+                        "PAEH", 0.2, 0.2,
+                        "PASM", 0.2, 0.2,
+                        "PABE", 0.2, 0.2,
+                        "PADI", 0.2, 0.2,
+                        "PAKN", 0.2, 0.2,
+                        "PAPH", 0.2, 0.2, 
+                        "PASO", 0.2, 0.2,
+                        "PACD", 0.2, 0.2,
+                        "PADU", 0.2, 0.2,
+                        "PASN", 0.2, 0.2,
+                        "PADK", 0.2, 0.2,
+                        "PASY", 0.2, 0.2),
+                      ncol = 3, byrow = TRUE)
+repel_stids <- as.data.frame(repel_stids, 
+                             stringsAsFactors = FALSE) %>%
+  rename(stid = V1, nudge_x = V2, nudge_y = V3) %>%
+  mutate(nudge_x = as.numeric(nudge_x),
+         nudge_y = as.numeric(nudge_y))
+
+# coordinates for "repel" labels
+repel_coords <- repel_stids %>% 
+  inner_join(select_stations, by = "stid") %>% 
+  select(stid, lon, lat, nudge_x, nudge_y) 
+repel_coords_sf <- st_as_sf(repel_coords[, 1:3], coords = c("lon", "lat"), 
+                         remove = FALSE, crs = 4326)
+repel_coords_sf <- st_transform(repel_coords_sf, 26935)
+repel_coords <- matrix(unlist(repel_coords_sf$geometry), 
+                       ncol = 2, byrow = TRUE) %>%
+  as.data.frame(stringsAsFactors = FALSE) %>%
+  bind_cols(repel_coords) %>%
+  mutate(V1 = as.numeric(V1),
+         V2 = as.numeric(V2))
+
 # plot
 theme_set(theme_bw())
 p <- ggplot(data = ak_sf) + geom_sf(fill = "cornsilk") +
-  geom_sf(data = coords, shape = 21, fill = "darkred") + 
-  geom_sf(data = coords_2, shape = 21, size = 2, fill = "cyan") +
   ggtitle("AK ASOS Stations Selected For Climatology", 
           subtitle = paste0("Stations having fewer than ", 100 * (1 - p_tot), 
                             "% of days of fewer than ", n, 
@@ -142,75 +202,19 @@ p <- ggplot(data = ak_sf) + geom_sf(fill = "cornsilk") +
                             " stations)
   Stations missing more than ", miss_cut, 
                             " days colored blue")) +
-  xlab("Lng") + ylab("Lat")
-p + geom_sf_label(data = lab_coords, aes(label = stid), 
-                  size = 2, 
-                  label.padding = unit(0.05, "lines"))
+  xlab("Lng") + ylab("Lat") +
+  geom_sf(data = coords, shape = 21, fill = "darkred") + 
+  geom_sf(data = coords_2, shape = 21, size = 2, fill = "cyan")
 
-fig_path <- file.path(figdir, "AK_ASOS_avail_locations.png")
+  geom_text_repel(data = repel_coords, 
+                  aes(x = V1, y = V2, label = stid), 
+                  size = 3, fontface = "bold", 
+                  min.segment.length = 0.1,
+                  nudge_x = repel_coords$nudge_x,
+                  nudge_y = repel_coords$nudge_y) + 
+  
+fig_path <- file.path(figdir, "AK_ASOS_select_locations.png")
 ggsave(fig_path, plot = p, device = "png", width = 8, height = 6)
-
-
-
-
-# Wonky stations
-#   figure of select stations with gaps/odd behavior in time series
-# select stations
-select_stations_path <- file.path(datadir, "select_stations.Rds")
-select_stations <- readRDS(select_stations_path)
-
-sites <- as.data.frame(select_stations[, c("lon", "lat")])
-sites <- st_as_sf(sites, coords = c("lon", "lat"), crs = 4326)
-sites <- st_transform(sites, 26935)
-# wonky stations
-stids_w <- c("PADT", "PADU", "PAEC", "PAFE", "PAGS", 
-             "PAIL", "PASD", "PASH", "PASM", "PATK")
-sites_w <- select_stations %>% 
-  filter(stid %in% stids_w) %>% 
-  select(lon, lat) %>%
-  as.data.frame()
-
-sites_w <- st_as_sf(sites_w, coords = c("lon", "lat"), crs = 4326)
-sites_w <- st_transform(sites_w, 26935)
-
-p <- ggplot(data = ak) + geom_sf(fill = "cornsilk") +
-  geom_sf(data = sites, shape = 21, fill = "darkred") + 
-  geom_sf(data = sites_w, shape = 21, size = 2, fill = "cyan") +
-  #geom_text(aes(label = stids_w)) +
-  ggtitle("AK ASOS Stations Selected For Climatology")
-
-
-
-
-# attempting to label stations
-#   figure of select stations with gaps/odd behavior in time series
-# select stations
-select_stations_path <- file.path(datadir, "select_stations.Rds")
-select_stations <- readRDS(select_stations_path)
-
-sites <- as.data.frame(select_stations[, c("stid", "lon", "lat")])
-sites <- st_as_sf(sites, coords = c("lon", "lat"), crs = 4326)
-sites <- st_transform(sites, 26935)
-# wonky stations
-stids_w <- c("PADT", "PADU", "PAEC", "PAFE", "PAGS", 
-             "PAIL", "PASD", "PASH", "PASM", "PATK")
-sites_w <- select_stations %>% 
-  filter(stid %in% stids_w) %>% 
-  select(lon, lat) %>%
-  as.data.frame()
-
-sites_w <- st_as_sf(sites_w, coords = c("lon", "lat"), crs = 4326)
-sites_w <- st_transform(sites_w, 26935)
-
-p <- ggplot(data = ak) + geom_sf(fill = "cornsilk") +
-  geom_sf(data = sites, shape = 21, fill = "darkred") + 
-  #geom_sf(data = sites_w, shape = 21, size = 2, fill = "cyan") +
-  #geom_text(aes(label = stids_w)) +
-  ggtitle("AK ASOS Stations Selected For Climatology")
-
-p + geom_sf_label(data = sites, aes(label = stid), 
-                 size = 2, 
-                 label.padding = unit(0.1, "lines"))
 
 
 
