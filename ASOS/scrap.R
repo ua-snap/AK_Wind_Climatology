@@ -20,6 +20,9 @@ asos_daily <- fread(asos_daily_path)
 asos_daily_path <- file.path(datadir, "AK_ASOS_daily_select_adjspeed_19800101_to_20150101.csv")
 asos_daily <- fread(asos_daily_path)
 
+# hourly data
+asos_qc_dir <- file.path(datadir, "AK_ASOS_stations_qc")
+
 # select stations meta
 select_stations_path <- file.path(datadir, "select_stations.Rds")
 select_stations <- readRDS(select_stations_path)
@@ -30,6 +33,84 @@ start_date <- as.Date("1985-01-01")
 end_date <- start_date + years(30)
 asos_select <- asos_daily %>% filter(date >= start_date &
                                      date <= end_date)
+
+# changepoints
+asos_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
+cpts_path <- file.path(asos_adj_dir, "cpts_df.Rds")
+cpts_df <- readRDS(cpts_path)
+
+#-- Find Qmap Warning ---------------------------------------------------------
+# There was a warning for qmapping with one of the stations
+#   Goal here to find which it was
+cp_stids <- cpts_df$stid[cpts_df$cpts > 0]
+options(warn = 2)
+for(i in seq_along(cp_stids)){
+  asos_hourly_path <- file.path(asos_qc_dir, paste0(cp_stids[i], "_qc.Rds"))
+  asos_hourly <- readRDS(asos_hourly_path)
+  cpt <- cpts_df[cpts_df$stid == cp_stids[i], ]
+  
+  if(cpt$cpts == 1){
+    sim <- asos_hourly$sped[asos_hourly$date <= cpt$cp1]
+    obs <- asos_hourly$sped[asos_hourly$date > cpt$cp1]
+    
+    temp <- qMapWind(obs, sim)
+  } else {
+    sim1 <- asos_hourly$sped[asos_hourly$date <= cpt$cp1]
+    sim2 <- asos_hourly$sped[asos_hourly$date > cpt$cp1 &
+                               asos_hourly$date <= cpt$cp2]
+    obs <- asos_hourly$sped[asos_hourly$date > cpt$cp2]
+    
+    temp1 <- qMapWind(obs, sim1)
+    temp2 <- qMapWind(obs, sim2)
+  }
+}
+options(warn = 0)
+#------------------------------------------------------------------------------
+
+#-- ECDF plot -----------------------------------------------------------------
+g_legend<-function(a.gplot){
+  tmp <- ggplot_gtable(ggplot_build(a.gplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)}
+# 
+df1 <- data.frame(data = c(sim, obs),
+                  period = as.factor(c(rep("sim", length(sim)),
+                                       rep("obs", length(obs)))))
+df2 <- data.frame(data = c(q_adj, obs),
+                  period = as.factor(c(rep("sim", length(sim)),
+                                       rep("obs", length(obs)))))
+
+xmax <- 7 * summary(c(sim, obs))[5]
+p1 <- ggplot(df1, aes(data, color = period)) + stat_ecdf(size = 1) + 
+  xlab("Wind Speed (MPH)") + ylab("Cumulative Probability") + 
+  xlim(c(0, xmax)) + scale_color_discrete(name = "Data", 
+                                          labels = c("Sim", "Obs")) + 
+  theme(legend.position = "bottom") 
+
+p2 <- ggplot(df2, aes(data, color = period)) + stat_ecdf(size = 1) + 
+  xlab("Wind Speed (MPH)") + ylab(element_blank()) + 
+  xlim(c(0, xmax))  + ggtitle(" ")
+
+mylegend <- g_legend(p1)
+
+#barfill <- "gold1"
+#barlines <- "goldenrod2"
+#p3 <- ggplot(asos_hourly_station, aes(x = adj_diff)) +
+#  geom_histogram(aes(y = ..count..), binwidth =  0.5,
+#                 colour = barlines, fill = barfill) +
+#  scale_x_continuous(name = "Adjusted differences",
+#                     breaks = seq(0, 10, 5),
+#                     limits=c(0, 10)) +
+#  scale_y_continuous(name = "Count") +
+#  ggtitle(" ")
+
+p4 <- grid.arrange(arrangeGrob(p1 + theme(legend.position="none"),
+                               p2 + theme(legend.position="none"), 
+                               nrow=1),
+                   mylegend, nrow=2,heights=c(10, 1))
+
+#------------------------------------------------------------------------------
 
 #-- geom_smooth ---------------------------------------------------------------
 # having trouble getting geom_smooth to show on these data
