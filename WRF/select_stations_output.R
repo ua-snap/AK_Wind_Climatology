@@ -37,8 +37,18 @@ target_years <- year(start_date):year(end_date)
 #-- Station Cells -------------------------------------------------------------
 # determine where on the WRF grid each station lies
 # open connection to one of the files 
-u10_fname <- "u10_hourly_wrf_ERA-Interim_historical_1998.nc"
-u10_path <- file.path(u10_dir, 
-                      "u10_hourly_wrf_ERA-Interim_historical_1998.nc")
+u10_fname <- "u10_hourly_wrf_ERA-Interim_historical_"
+u10_path <- file.path(u10_dir, paste0(u10_fname, target_years[1], ".nc"))
 # open connection for pulling data
 u10 <- nc_open(u10_path)
+# extract x and y
+xc <- ncvar_get(u10, varid = "xc")
+yc <- ncvar_get(u10, varid = "yc")
+nx <- length(xc)
+ny <- length(yc)
+# extract time 0 layer of u component
+t0 <- ncvar_get(u10, "u10", count = c(nx, ny, 1))
+
+
+df <- expand.grid(xc, yc)
+names(df) <- c("x", "y")
