@@ -39,6 +39,8 @@ asos_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
 cpts_path <- file.path(asos_adj_dir, "cpts_df.Rds")
 cpts_df <- readRDS(cpts_path)
 
+#------------------------------------------------------------------------------
+
 #-- Find Qmap Warning ---------------------------------------------------------
 # There was a warning for qmapping with one of the stations
 #   Goal here to find which it was
