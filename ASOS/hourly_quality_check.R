@@ -1,9 +1,8 @@
 # Script summary
 #
 # Stids
-#   The meta data downloaded from IEM does not have every
-#   stid found in full downloaded data (missing 2, has 1 extra)
-# 
+#   All stids found in the downloaded ASOS hourly data
+#   
 # Raw Station Rds Files
 #   Save raw data from stations individually
 #
@@ -17,6 +16,7 @@
 #   /data/AK_ASOS_NA.Rds
 #   /data/AK_ASOS_excess.Rds
 #   /data/AK_ASOS_bad_quality.Rds
+
 
 
 #-- Setup ---------------------------------------------------------------------
