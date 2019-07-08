@@ -31,7 +31,7 @@ g_legend<-function(a.gplot){
 workdir <- opts_knit$get("root.dir")
 datadir <- file.path(workdir, "data")
 # changepoints
-asos_select_adj_dir <- file.path(datadir, "AK_ASOS_allsites_wind_19800101_to_20150101_adj")
+asos_select_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
 cpts_path <- file.path(asos_select_adj_dir, "cpts_df.Rds")
 cpts_df <- readRDS(cpts_path)
 # ids of stations to be adjusted

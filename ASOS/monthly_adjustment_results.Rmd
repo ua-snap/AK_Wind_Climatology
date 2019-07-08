@@ -9,7 +9,7 @@ library(dplyr)
 library(ggplot2)
 library(lubridate)
 
-workdir <- file.path("C:/Users/Keal/Desktop/IARC/Wind_Climatology/")
+workdir <- getwd()
 datadir <- file.path(workdir, "data")
 figdir <- file.path(workdir, "figures")
 

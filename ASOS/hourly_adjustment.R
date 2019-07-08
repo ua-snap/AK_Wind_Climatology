@@ -9,9 +9,9 @@
 #   loop through Rds files, remove unnecessary data and save csv's
 #
 # Output files:
-#   /data/AK_ASOS_stations_adj/"stids"_adj.Rds
+#   /data/AK_ASOS_stations_adj/"stids".Rds
 #   /data/AK_ASOS_stations_adj/cpts_df.Rds
-#   /data/AK_ASOS_stations_adj_csv/"stids"_adj.csv
+#   /data/AK_ASOS_stations_adj_csv/"stids".csv
 
 
 
