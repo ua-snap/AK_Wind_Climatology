@@ -3,20 +3,16 @@ title: "Quantile Mapping Adjustment of AK ASOS Wind Speeds"
 output: pdf_document
 ---
 
-```{r setup}
-library(knitr)
+```{r setup, echo = FALSE, fig.height = 3, fig.width = 8, warning = FALSE, message = FALSE}
 library(qmap)
 library(dplyr)
 library(ggplot2)
 library(gridExtra)
 
-opts_knit$set(root.dir = "../..")
-
-opts_chunk$set(echo = FALSE,
-               fig.height = 3, fig.width = 8,
-               warning = FALSE,
-               messge = FALSE,
-               fig.path = NULL)
+knitr::opts_knit$set(root.dir = "../..")
+# directories
+workdir <- knitr::opts_knit$get("root.dir")
+datadir <- file.path(workdir, "data")
 
 # Plotting before and after ECDFs to verify that quantile mapping "worked"
 # extract legend, code borrowed from SO (for sharing legend between plots)
@@ -27,9 +23,6 @@ g_legend<-function(a.gplot){
   legend <- tmp$grobs[[leg]]
   return(legend)}
 
-# directories
-workdir <- opts_knit$get("root.dir")
-datadir <- file.path(workdir, "data")
 # changepoints
 asos_select_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
 cpts_path <- file.path(asos_select_adj_dir, "cpts_df.Rds")
@@ -43,8 +36,8 @@ adj2_stids <- cpts_df$stid[cpts_df$cpts == 2]
 stids_nocpts <- cpts_df$stid[cpts_df$cpts == 0]
 
 theme_set(theme_bw())
-# for(i in 1:length(adj1_stids)) {
-for(i in 1) {
+for(i in seq_along(adj1_stids)) {
+# for(i in 1) {
   asos_path <- file.path(asos_select_adj_dir, 
                          paste0(adj1_stids[i], ".Rds"))
   asos_hourly_station <- readRDS(asos_path)
@@ -53,41 +46,34 @@ for(i in 1) {
                                 adj_diff = sped - sped_adj)
   
   asos_hourly_station$period <- as.factor(asos_hourly_station$period)
-  xmax <- 7 * summary(asos_hourly_station$sped_adj)[5]
+  xmax <- quantile(asos_hourly_station$sped_adj, probs = seq(0, 1, 1/100))[100] + 5
   
-  p1 <- ggplot(asos_hourly_station, aes(sped, color = period)) + stat_ecdf(size = 1) + 
+  p1 <- ggplot(asos_hourly_station, aes(sped, color = period)) + 
+    stat_ecdf(geom = "step", size = 1) + 
     xlab("Wind Speed (MPH)") + ylab("Cumulative Probability") + 
     xlim(c(0, xmax)) + scale_color_discrete(name = "Data", 
                                           labels = c("Biased", "Current")) + 
     theme(legend.position = "bottom") + ggtitle(adj1_stids[i])
 
-  p2 <- ggplot(asos_hourly_station, aes(sped_adj, color = period)) + stat_ecdf(size = 1) + 
+  p2 <- ggplot(asos_hourly_station, aes(sped_adj, color = period)) + 
+    stat_ecdf(geom = "step", size = 1) + 
     xlab("Wind Speed (MPH)") + ylab(element_blank()) + 
     xlim(c(0, xmax))  + ggtitle(" ")
   
   mylegend <- g_legend(p1)
   
-  #barfill <- "gold1"
-  #barlines <- "goldenrod2"
-  #p3 <- ggplot(asos_hourly_station, aes(x = adj_diff)) +
-  #  geom_histogram(aes(y = ..count..), binwidth =  0.5,
-  #                 colour = barlines, fill = barfill) +
-  #  scale_x_continuous(name = "Adjusted differences",
-  #                     breaks = seq(0, 10, 5),
-  #                     limits=c(0, 10)) +
-  #  scale_y_continuous(name = "Count") +
-  #  ggtitle(" ")
-
-  p4 <- grid.arrange(arrangeGrob(p1 + theme(legend.position="none"),
+  grid.arrange(arrangeGrob(p1 + theme(legend.position="none"),
                            p2 + theme(legend.position="none"), 
                            nrow=1),
                mylegend, nrow=2,heights=c(10, 1))
   
+  
+  
 }
 
 
-# for(i in 1:length(adj2_stids)) {
-for(i in 1) {
+for(i in seq_along(adj2_stids)) {
+#for(i in 1) {
 
   asos_path <- file.path(asos_select_adj_dir, 
                          paste0(adj2_stids[i], ".Rds"))
@@ -97,13 +83,13 @@ for(i in 1) {
                                 adj_diff = sped - sped_adj)
   
   asos_hourly_station$period <- as.factor(asos_hourly_station$period)
-  xmax <- 7 * summary(asos_hourly_station$sped_adj)[5]
+  xmax <- quantile(asos_hourly_station$sped_adj, probs = seq(0, 1, 1/100))[100] + 5
   
   p1 <- ggplot(asos_hourly_station, aes(sped, color = period)) + stat_ecdf(size = 1) + 
     xlab("Wind Speed (MPH)") + ylab("Cumulative Probability") + 
     xlim(c(0, xmax)) + scale_color_discrete(name = "Data", 
                                           labels = c("Biased 1", "Biased 2", "Current")) + 
-    theme(legend.position = "bottom") + ggtitle(adj1_stids[i])
+    theme(legend.position = "bottom") + ggtitle(adj2_stids[i])
 
   p2 <- ggplot(asos_hourly_station, aes(sped_adj, color = period)) + stat_ecdf(size = 1) + 
     xlab("Wind Speed (MPH)") + ylab(element_blank()) + 
@@ -111,31 +97,22 @@ for(i in 1) {
   
   mylegend <- g_legend(p1)
   
-  #barfill <- "gold1"
-  #barlines <- "goldenrod2"
-  #p3 <- ggplot(asos_hourly_station, aes(x = adj_diff)) +
-  #  geom_histogram(aes(y = ..count..), binwidth =  0.5,
-  #                 colour = barlines, fill = barfill) +
-  #  scale_x_continuous(name = "Adjusted differences",
-  #                     breaks = seq(0, 10, 5),
-  #                     limits=c(0, 10)) +
-  #  scale_y_continuous(name = "Count") +
-  #  ggtitle(" ")
-
-  p4 <- grid.arrange(arrangeGrob(p1 + theme(legend.position="none"),
+  grid.arrange(arrangeGrob(p1 + theme(legend.position="none"),
                            p2 + theme(legend.position="none"), 
                            nrow=1),
                mylegend, nrow=2,heights=c(10, 1))
+  
+  
   
 }
 
 ```
 
 
-```{r move}
+```{r move, eval=FALSE}
 # move output file to document directory
-files <- list.files(file.path(workdir, "code/ASOS"))
-index <- grep("pdf", files)
-file.rename(file.path("code", files[index]),
-            file.path("documents", files[index]))
+#files <- list.files(file.path(workdir, "code/ASOS"))
+#index <- grep("pdf", files)
+#file.rename(file.path("code", files[index]),
+#            file.path("documents", files[index]))
 ```

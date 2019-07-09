@@ -14,9 +14,9 @@ library(sf)
 library(USAboundaries)
 
 # Work directory
-workdir <- file.path("C:/Users/Keal/Desktop/IARC/Wind_Climatology/")
+workdir <- getwd()
 datadir <- file.path(workdir, "data")
-asos_select_adj_dir <- file.path(datadir, "AK_ASOS_allsites_wind_19800101_to_20150101_adj")
+asos_select_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
 
 # changepoints
 #cpts_path <- file.path(asos_select_adj_dir, "cpts_df.Rds")

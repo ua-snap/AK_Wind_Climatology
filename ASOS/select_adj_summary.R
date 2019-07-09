@@ -1,6 +1,6 @@
 # Script Summary
 #
-# Summarize select/adjust data by day and by month
+# Summarize select/adj data by day and by month
 #
 # Output files:
 #   /data/AK_ASOS_daily_select_adj_19800101_to_20150101.Rds

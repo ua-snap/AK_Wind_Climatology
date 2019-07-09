@@ -1,11 +1,13 @@
-library(dplyr)
-library(ggplot2)
-library(data.table)
-library(lubridate)
+
+# Scrap code for working with ASOS data
 
 
 
 #-- Setup ---------------------------------------------------------------------
+library(dplyr)
+library(ggplot2)
+library(data.table)
+library(lubridate)
 
 workdir <- file.path("C:/Users/Keal/Desktop/IARC/Wind_Climatology/")
 datadir <- file.path(workdir, "data")
@@ -139,7 +141,6 @@ df %>% mutate(y = x^3 + x^2) %>%
   geom_smooth()
 #------------------------------------------------------------------------------
 
-
 #-- Wind rose -----------------------------------------------------------------------
 library(openair)
 library(circular)
@@ -149,7 +150,7 @@ asos_station_path <- file.path(asos_select_adj_dir, "PAFA_hour.Rds")
 asos_station <- readRDS(asos_station_path)
 asos_station$drct <- as.numeric(asos_station$drct)
 # openair package (blocky and junk)
-save_path <- file.path(figdir, "PAFA_monthly_windrose.tiff")
+save_path <- file.path(figdir, "scrap_PAFA_monthly_windrose.tiff")
 tiff(save_path, width = 3000, height = 3000, res = 300)
 windRose(asos_station, "sped_adj", "drct", 
          paddle = FALSE, type = "month", 
@@ -157,7 +158,7 @@ windRose(asos_station, "sped_adj", "drct",
          angle = 10)
 dev.off()
 
-save_path <- file.path(figdir, "PAFA_windrose.tiff")
+save_path <- file.path(figdir, "scrap_PAFA_windrose.tiff")
 tiff(save_path, width = 2500, height = 2500, res = 300)
 windRose(asos_station, "sped_adj", "drct", 
          paddle = FALSE, breaks = c(0, 4, 8, 12, 16, 20),
@@ -169,7 +170,6 @@ pollutionRose(asos_station, "sped_adj")
 windrose(as.data.frame(asos_station[, c("drct", "sped_adj")]),
          units = "degrees")
 #------------------------------------------------------------------------------
-
 
 #-- Avg speeds ----------------------------------------------------------------
 
@@ -195,7 +195,6 @@ ggplot(asos_station, aes(date, med_sped_mo, group = 1)) + geom_line() +
   xlab("") + ylab("Avg Speed (mph)") + scale_x_date(date_labels = "%Y") + 
   ggtitle(stations[i])
 #------------------------------------------------------------------------------
-
 
 #-- change point --------------------------------------------------------------
 

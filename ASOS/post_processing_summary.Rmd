@@ -1,0 +1,35 @@
+---
+title: "Post Processing Summary"
+output: pdf_document
+---
+
+Herein lies a final quality check of the AK ASOS data, post-correction for instrumentation bias.  
+
+Some items that have come up during the processing of these data:  
+* Extreme adjustments from quantile mapping
+* Differences in "discreteness" between periods (present in raw data?)
+* High speeds (e.g. > 30): are they legit?
+
+```{r setup, include = FALSE}
+knitr::opts_knit$set(echo = FALSE)
+
+```
+
+
+
+
+```{r }
+
+
+```
+
+
+
+
+```{r }
+
+
+
+```
+
+
