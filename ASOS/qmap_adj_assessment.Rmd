@@ -49,14 +49,14 @@ for(i in seq_along(adj1_stids)) {
   xmax <- quantile(asos_hourly_station$sped_adj, probs = seq(0, 1, 1/100))[100] + 5
   
   p1 <- ggplot(asos_hourly_station, aes(sped, color = period)) + 
-    stat_ecdf(geom = "step", size = 1) + 
+    stat_ecdf(size = 1) + 
     xlab("Wind Speed (MPH)") + ylab("Cumulative Probability") + 
     xlim(c(0, xmax)) + scale_color_discrete(name = "Data", 
                                           labels = c("Biased", "Current")) + 
     theme(legend.position = "bottom") + ggtitle(adj1_stids[i])
 
   p2 <- ggplot(asos_hourly_station, aes(sped_adj, color = period)) + 
-    stat_ecdf(geom = "step", size = 1) + 
+    stat_ecdf(size = 1) + 
     xlab("Wind Speed (MPH)") + ylab(element_blank()) + 
     xlim(c(0, xmax))  + ggtitle(" ")
   

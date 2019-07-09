@@ -6,7 +6,8 @@
 #   Break data into segments, perform quantile mapping, and save
 #
 # Clean CSV files
-#   loop through Rds files, remove unnecessary data and save csv's
+#   loop through Rds files, remove unnecessary data and
+#   fill rows with blank data, save csv's
 #
 # Output files:
 #   /data/AK_ASOS_stations_adj/"stids".Rds
@@ -86,7 +87,6 @@ start_date <- ymd("1980-01-01")
 end_date <- start_date + years(35)
 # select station ids
 stids <- select_stations$stid
-no_stids <- length(stids)
 # cutting daily data frame down
 asos_daily <- asos_daily %>% filter(stid %in% stids)
 
@@ -114,7 +114,7 @@ noAdjust <- function(df) {
 # changepoint tolerance
 alpha <- 0.01
 conf <- 1 - alpha
-for(i in 1:no_stids) {
+for(i in seq_along(stids)) {
   # monthly data for finding changepoints
   asos_station <- asos_daily %>% filter(stid == stids[i]) %>%
     mutate(month = format(date, format = "%Y-%m"), one = 1) %>% 
@@ -314,19 +314,23 @@ saveRDS(cpts_df, cpts_path)
 #------------------------------------------------------------------------------
 
 #-- Save CSVs -----------------------------------------------------------------
+# construct data frame for all potential hours of observation between 1980
+#   and 2015
+{start_date <- ymd_hms("1980-01-01 00:00:00")
+end_date <- ymd_hms("2015-01-01 00:0:00")
+sampling_df <- data.frame(t_round = seq(start_date, end_date, "hour"))
 # Loop through saved Rds station data and save as csv
 for(i in seq_along(stids)){
   station_rds_path <- file.path(asos_adj_dir, paste0(stids[i], ".Rds"))
   station_csv_path <- file.path(asos_adj_dir_csv, paste0(stids[i], ".csv"))
-  asos_hourly <- readRDS(station_rds_path) %>% 
-    filter(date >= start_date & 
-             date <= end_date)
-  saveRDS(asos_hourly, station_rds_path)
-  # csv save
-  df <- asos_hourly %>% 
-    as.data.frame() %>%
-    select(stid, valid, drct, sped, sped_adj)
-  write.csv(df, station_csv_path, row.names = FALSE)
-}
+  # interpolate missing times by joining with sampling_df, save csv
+  asos_df <- readRDS(station_rds_path) %>% 
+    right_join(sampling_df, by = "t_round") %>%
+    select(stid, t_round, drct, sped, sped_adj, valid) %>%
+    rename(t_actual = valid) %>% 
+    mutate(stid = stids[i]) %>%
+    as.data.frame()
+  write.csv(asos_df, station_csv_path, row.names = FALSE)
+}}
 
 #------------------------------------------------------------------------------
