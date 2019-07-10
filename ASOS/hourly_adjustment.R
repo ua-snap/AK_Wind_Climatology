@@ -317,7 +317,7 @@ saveRDS(cpts_df, cpts_path)
 # construct data frame for all potential hours of observation between 1980
 #   and 2015
 {start_date <- ymd_hms("1980-01-01 00:00:00")
-end_date <- ymd_hms("2015-01-01 00:0:00")
+end_date <- ymd_hms("2015-01-01 23:00:00")
 sampling_df <- data.frame(t_round = seq(start_date, end_date, "hour"))
 # Loop through saved Rds station data and save as csv
 for(i in seq_along(stids)){
@@ -333,4 +333,15 @@ for(i in seq_along(stids)){
   write.csv(asos_df, station_csv_path, row.names = FALSE)
 }}
 
+# save CSV of all changepoints info
+cpts_df_save <- cpts_df %>% 
+  filter(is.na(cp1) != TRUE) %>%
+  mutate(m1 = round(m1, 2),
+         m2 = round(m2, 2),
+         m3 = round(m3, 2),
+         sd1 = round(sd1, 2),
+         sd2 = round(sd2, 2),
+         sd3 = round(sd3, 2))
+cpts_save_path <- file.path(datadir, "AK_ASOS_changepoint_info.csv")
+write.csv(cpts_df_save, cpts_save_path, row.names = FALSE)
 #------------------------------------------------------------------------------

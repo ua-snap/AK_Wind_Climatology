@@ -1,8 +1,8 @@
 ---
-title: "Quantile Mapping Adjustment of AK ASOS Wind Speeds"
+title: "Quantile Mapping Results"
 output: pdf_document
 ---
-
+### ECDFs before/after adjustment
 ```{r setup, echo = FALSE, fig.height = 3, fig.width = 8, warning = FALSE, message = FALSE}
 library(qmap)
 library(dplyr)
