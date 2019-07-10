@@ -6,10 +6,10 @@
 # Example monthly average barplots
 #
 # Output files:
-#   /figures/website_examples/PAFA_windrose.tiff
-#   /figures/website_examples/PABR_windrose.tiff
-#   /figures/website_examples/PAFA_mo_speeds.tiff
-#   /figures/website_examples/PABR_mo_speeds.tiff
+#   /figures/website_examples/PAFA_windrose.png
+#   /figures/website_examples/PABR_windrose.png
+#   /figures/website_examples/PAFA_mo_speeds.png
+#   /figures/website_examples/PABR_mo_speeds.png
 
 
 
