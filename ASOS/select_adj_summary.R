@@ -23,20 +23,19 @@ stids <- select_stations$stid
 #------------------------------------------------------------------------------
 
 #-- Summarize By Day and Month ------------------------------------------------
-stids <- select_stations$stid
-
 {# daily data frame
 asos_daily <- data.frame(stid = character(), 
                          date = ymd(),
                          obs_prop = double(), 
                          avg_sped = double(),
+                         avg_sped_adj = double(),
                          stringsAsFactors = FALSE)
 # monthly data frame
 asos_monthly <- data.frame(stid = character(),
                            ym_date = ymd(),
                            obs_prop = double(),
                            avg_sped = double(),
-                           se_sped = double(),
+                           avg_sped_adj = double(),
                            stringsAsFactors = FALSE)
 
 # loop through selected/adjusted data and summarize by both day and month
@@ -48,21 +47,23 @@ for(i in seq_along(stids)){
   asos_summary <- asos_station %>% 
     group_by(stid, date) %>%
     summarise(obs_prop = n()/24, 
-              avg_sped = mean(sped_adj)) %>%
-    select(stid, date, obs_prop, avg_sped)
+              avg_sped = mean(sped),
+              avg_sped_adj = mean(sped_adj)) %>%
+    select(stid, date, obs_prop, avg_sped, avg_sped_adj)
   # append to daily
   asos_daily <- bind_rows(asos_daily, asos_summary)
   
   # monthly summary
   # count number of hourly observations/24
   asos_summary <- asos_station %>% 
-    mutate(ym_date = ymd(paste(year(date), sprintf("%02d", month(date)), 
-                      "01", sep = "-"))) %>%
+    mutate(ym_date = ymd(paste(year(date), 
+                               sprintf("%02d", month(date)), 
+                               "01", sep = "-"))) %>%
     group_by(stid, ym_date) %>%
     summarise(obs_prop = n()/(days_in_month(unique(ym_date)) * 24), 
-              avg_sped = mean(sped_adj),
-              se_sped = sd(sped_adj)/sqrt(n())) %>%
-    select(stid, ym_date, obs_prop, avg_sped, se_sped)
+              avg_sped = mean(sped),
+              avg_sped_adj = mean(sped_adj)) %>%
+    select(stid, ym_date, obs_prop, avg_sped, avg_sped_adj)
   # append to daily
   asos_monthly <- bind_rows(asos_monthly, asos_summary)
 }
