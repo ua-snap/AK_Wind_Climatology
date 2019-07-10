@@ -4,6 +4,7 @@
 #
 # Output Files
 #   /documents/changepoint_results.pdf
+#   /documents/qmap_adj_ecdf_plots.pdf
 
 
 #-- Setup ---------------------------------------------------------------------
