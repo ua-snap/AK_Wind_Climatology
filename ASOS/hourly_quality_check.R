@@ -11,8 +11,8 @@
 #
 # Output files:
 #   /data/all_stids.Rds
-#   /data/stations_raw/"stid"_raw.Rds
-#   /data/stations_qc/"stid"_qc.Rds
+#   /data/AK_ASOS_stations_raw/"stid"_raw.Rds
+#   /data/AK_ASOS_stations_qc/"stid"_qc.Rds
 #   /data/AK_ASOS_NA.Rds
 #   /data/AK_ASOS_excess.Rds
 #   /data/AK_ASOS_bad_quality.Rds

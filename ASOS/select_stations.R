@@ -10,6 +10,7 @@
 # 
 # Output files:
 #   /data/AK_ASOS_select_stations.Rds
+#   /data/AK_ASOS_stations_meta_succ.Rds
 #   /figures/AK_ASOS_select_locations.png
 
 

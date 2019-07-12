@@ -94,7 +94,8 @@ saveRDS(stid_wrf_ind, file.path(datadir, "stid_wrf_ind.Rds"))
 #-- Extract WRF Output --------------------------------------------------------
 # initialize data frames for saving components
 for(i in seq_along(stids)){
-  save_path <- file.path(stations_wrf_dir_raw, paste0(stids[i], "_raw.Rds"))
+  save_path <- file.path(stations_wrf_dir_raw, 
+                         paste0(stids[i], "_wrf_raw.Rds"))
   df <- data.frame(stid = character(),
                    ts = ymd_hms(),
                    u10 = numeric(),

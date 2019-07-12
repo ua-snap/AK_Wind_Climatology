@@ -13,6 +13,7 @@
 #   /data/AK_ASOS_stations_adj/"stids".Rds
 #   /data/AK_ASOS_stations_adj/cpts_df.Rds
 #   /data/AK_ASOS_stations_adj_csv/"stids".csv
+#   /data/AK_ASOS_changepoint_info.csv
 
 
 
@@ -63,7 +64,6 @@ qMapWind <- function(obs, sim){
 }
 
 # Setup workspace
-library(data.table)
 library(dplyr)
 library(lubridate)
 library(changepoint)
