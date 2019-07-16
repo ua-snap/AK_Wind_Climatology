@@ -21,13 +21,31 @@ qMapWind <- function(obs, sim){
   q_diff <- q_sim - q_obs
   # assign quantiles to observations
   # round() used to alleviate troubles with fp comparison
-  qs <- unique(round(q_sim, 10))
+  qs <- c(-Inf, unique(round(q_sim, 10)))
   # might be able to speed things up here
   # can try cut function with unique breaks
   # Then for duplicated quantiles (e.g. zero), need to randomly assign 
   #   indices 
-  q_t <- table(round(q_sim, 10))
-  q_ids <- c()
+  q_tab <- table(round(q_sim, 10))
+  q_dup_tab <- q_tab[q_tab > 1]
+  q_dup <- as.numeric(names(q_dup_tab))
+  setdiff(q_sim, q_dup)
+  
+  sim_jit <- sim + seq_along(sim) * .Machine$double.eps
+  q_sim <- quantile(sim_jit, seq(0, 1, length.out = qn), type = 8)
+  
+  test <- q_sim[q_sim %in% names(q_dup)]
+  
+  x2 <- which(sim %in% q_dup)
+  
+  q_ids <- .bincode(sim, q_sim, include.lowest = TRUE)
+  
+  x1 <- q_ids[which(q_ids %in% q_ids[duplicated(q_ids)])]
+  
+  q0 <- as.numeric(which(q_sim == 0))
+  nq0 <- length(q0)
+  q_ids <- as.numeric(cut(sim_jit, breaks = qs)) #+ nq0
+  suppressWarnings(q_ids[is.na(q_ids)] <- q0)
   
   # loop through unique quantiles
   for(i in 1:length(qs)){

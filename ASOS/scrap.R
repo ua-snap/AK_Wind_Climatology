@@ -9,7 +9,7 @@ library(ggplot2)
 library(data.table)
 library(lubridate)
 
-workdir <- file.path("C:/Users/Keal/Desktop/IARC/Wind_Climatology/")
+workdir <- getwd()
 datadir <- file.path(workdir, "data")
 asos_select_adj_dir <- file.path(datadir, "AK_ASOS_allsites_wind_19800101_to_20150101_adj")
 figdir <- file.path(workdir, "figures")
@@ -41,6 +41,75 @@ asos_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
 cpts_path <- file.path(asos_adj_dir, "cpts_df.Rds")
 cpts_df <- readRDS(cpts_path)
 
+#------------------------------------------------------------------------------
+
+#-- Quantile Mapping ----------------------------------------------------------
+# quantile mapping performed using custom function,
+#   still would like to use quantile mapping method from 
+#   qmap package, or at least use it to inform cutsom function
+
+library(qmap)
+
+workdir <- getwd()
+datadir <- file.path(workdir, "data")
+asos_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
+cpts_df <- readRDS(file.path(asos_adj_dir, "cpts_df.Rds"))
+# PALU has m1 < m2, PABT has m1 > m2
+pabt <- readRDS(file.path(asos_adj_dir, "PABT.Rds"))
+palu <- readRDS(file.path(asos_adj_dir, "PALU.Rds"))
+# break into periods
+pabt_sim <- pabt$sped[pabt$period == 1]
+pabt_obs <- pabt$sped[pabt$period == 2]
+palu_sim <- palu$sped[palu$period == 1]
+palu_obs <- palu$sped[palu$period == 2]
+
+# perform quantile mapping using qmap
+qm_pabt <- fitQmapQUANT(pabt_obs, pabt_sim)
+qm_palu <- fitQmapQUANT(palu_obs, palu_sim, wet.day = FALSE)
+new_pabt <- doQmapQUANT(pabt_sim, qm_pabt)
+new_palu <- doQmapQUANT(palu_sim, qm_palu)
+
+ggECDF_compare(pabt_obs, pabt_sim, new_pabt)
+# when m1 < m2, no zero values (but very close)
+ggECDF_compare(palu_obs, palu_sim, new_palu)
+
+# this is what the qmap functions are doing:
+hn <- min(length(palu_sim), length(palu_obs))
+hn <- 1000
+xs <- quantile(palu_sim, seq(0, 1, length.out = hn), type = 8)
+ys <- quantile(palu_obs, seq(0, 1, length.out = hn), type = 8)
+xnew <- quantile(xs, seq(0, 1, 0.01), type = 8)
+booty <- quantile(ys, seq(0, 1, 0.01), type = 8)
+
+# sample just to try and figure shit out
+samp_x <- palu_sim[61:65]
+est <- approx(xnew, booty, xout = samp_x)$y
+# trying to recreate this, thinking just fitting a line between
+#   the first two unique quantiles. 
+# If this is the case, then the first value would be the intercept
+# second unique x quantile is 2.3
+j <- match(2.3, xnew) -1
+# intecept of line is mean of all y quantiles at 0
+mean(booty[1:j]) == est[1]
+
+
+dup_qx <- unique(xs[duplicated(xs)])
+q_i <- .bincode(palu_sim, xs, include.lowest = TRUE)
+dup_qi <- unique(q_i[which(xs[q_i + 1] %in% dup_qx)])
+# Could try adding last index of duplicated quantiles as names
+#   so could include "sampling" operation in lapply
+
+lapply(dup_qi, tempFun, q_i = q_i)
+# extract duplicate
+tempFun <- function(dup_qi, q_i){
+  q_i_j <- which(q_i == dup_qi)
+  dup_qij <- q_i[q_i_j]
+  names(dup_qij) <- q_i_j
+  dup_qij
+}
+
+tempFun2 <- function()
+temp <- unlist(lapply(dup_qi, tempFun, q_i = q_i))
 #------------------------------------------------------------------------------
 
 #-- Find Qmap Warning ---------------------------------------------------------

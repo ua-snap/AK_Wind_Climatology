@@ -16,12 +16,8 @@
 #-- Setup ---------------------------------------------------------------------
 library(dplyr)
 library(ggplot2)
-library(scales)
-library(gridExtra)
 library(openair)
-library(RColorBrewer)
-library(sf)
-library(USAboundaries)
+library(lubridate)
 
 # Work directory
 workdir <- getwd()
@@ -51,7 +47,7 @@ save_path <- file.path(examples_dir, paste0(stids[id_1], "_windrose.png"))
 png(save_path, width = 2500, height = 2500, res = 300)
 windRose(asos_station, "sped_adj", "drct", 
          paddle = FALSE, breaks = c(0, 4, 8, 12, 16, 20),
-         angle = 10,
+         angle = 10, type = "month", grid.line = 2,
          key.header = paste0(stids[id_1]),
          key.footer = "mph")
 dev.off()}
@@ -64,7 +60,7 @@ save_path <- file.path(examples_dir, paste0(stids[id_2], "_windrose.png"))
 png(save_path, width = 2500, height = 2500, res = 300)
 windRose(asos_station, "sped_adj", "drct", 
          paddle = FALSE, breaks = c(0, 6, 10, 14, 18, 22),
-         angle = 10,
+         angle = 10, type = "month", grid.line = 4,
          key.header = paste0(stids[id_2]),
          key.footer = "mph")
 dev.off()}

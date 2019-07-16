@@ -32,9 +32,9 @@ source(helpers)
 #------------------------------------------------------------------------------
 
 #-- Quantile Mapping ----------------------------------------------------------
-asos_station_path <- file.path(asos_adj_dir, "PABA.Rds")
+asos_station_path <- file.path(asos_adj_dir, "PAFA.Rds")
 asos_station <- readRDS(asos_station_path)
-wrf_station_path <- file.path(wrf_dir, "PABA_wrf.Rds")
+wrf_station_path <- file.path(wrf_dir, "PAFA_wrf.Rds")
 asos_wrf <- readRDS(wrf_station_path)
 
 sim <- asos_wrf$sped
