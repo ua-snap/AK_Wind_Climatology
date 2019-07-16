@@ -98,18 +98,28 @@ q_i <- .bincode(palu_sim, xs, include.lowest = TRUE)
 dup_qi <- unique(q_i[which(xs[q_i + 1] %in% dup_qx)])
 # Could try adding last index of duplicated quantiles as names
 #   so could include "sampling" operation in lapply
+dup_qi <- sort(dup_qi)
+last_dupi <- c((dup_qi - 1)[-1], length(xs))
+dup_qi <- dup_qi + as.numeric(paste0("0.", last_dupi))
 
 lapply(dup_qi, tempFun, q_i = q_i)
 # extract duplicate
 tempFun <- function(dup_qi, q_i){
+  end <- as.integer(substring(round(dup_qi - trunc(dup_qi), 3), 3))
+  dup_qi <- trunc(dup_qi)
   q_i_j <- which(q_i == dup_qi)
-  dup_qij <- q_i[q_i_j]
-  names(dup_qij) <- q_i_j
-  dup_qij
+  n <- length(q_i_j)
+  qis <- rep(0, n)
+  suppressWarnings(qis[rep(TRUE, n)] <- 1:end)
+  names(qis) <- q_i_j
+  qis
 }
 
-tempFun2 <- function()
 temp <- unlist(lapply(dup_qi, tempFun, q_i = q_i))
+df1 <- data.frame(sped = palu_sim, 
+                  id = 1:length(palu_sim),
+                  )
+
 #------------------------------------------------------------------------------
 
 #-- Find Qmap Warning ---------------------------------------------------------

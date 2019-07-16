@@ -12,7 +12,7 @@
 
 #-- Setup ---------------------------------------------------------------------
 # directories
-workdir <- knitr::opts_knit$get("root.dir")
+workdir <- getwd()
 datadir <- file.path(workdir, "data")
 asos_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
 cpts_path <- file.path(asos_adj_dir, "cpts_df.Rds")

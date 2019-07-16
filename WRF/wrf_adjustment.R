@@ -32,6 +32,11 @@ source(helpers)
 #------------------------------------------------------------------------------
 
 #-- Quantile Mapping ----------------------------------------------------------
+# loop through WRF output data files and adjust
+wrf_files <- list.files(wrf_dir)
+for(i in seq_along(wrf_files)){
+  
+}
 asos_station_path <- file.path(asos_adj_dir, "PAFA.Rds")
 asos_station <- readRDS(asos_station_path)
 wrf_station_path <- file.path(wrf_dir, "PAFA_wrf.Rds")

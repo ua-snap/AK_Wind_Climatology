@@ -12,69 +12,42 @@
 
 #-- qMapWind ------------------------------------------------------------------
 # Custom quantile mapping function
-#   Values adjusted below zero set to zero
-qMapWind <- function(obs, sim){
+qMapWind <- function(obs, sim, qn = 0.001){
   require(ggplot2)
-  qn <- min(length(obs), length(sim))
-  q_obs <- quantile(obs, seq(0, 1, length.out = qn), type = 8)
-  q_sim <- quantile(sim, seq(0, 1, length.out = qn), type = 8)
-  q_diff <- q_sim - q_obs
-  # assign quantiles to observations
-  # round() used to alleviate troubles with fp comparison
-  qs <- c(-Inf, unique(round(q_sim, 10)))
-  # might be able to speed things up here
-  # can try cut function with unique breaks
-  # Then for duplicated quantiles (e.g. zero), need to randomly assign 
-  #   indices 
-  q_tab <- table(round(q_sim, 10))
-  q_dup_tab <- q_tab[q_tab > 1]
-  q_dup <- as.numeric(names(q_dup_tab))
-  setdiff(q_sim, q_dup)
+  qn <- round(1/qn)
+  qy <- quantile(obs, seq(0, 1, length.out = qn), type = 8)
+  qx <- quantile(sim, seq(0, 1, length.out = qn), type = 8)
+  q_deltas <- qx - qy
   
-  sim_jit <- sim + seq_along(sim) * .Machine$double.eps
-  q_sim <- quantile(sim_jit, seq(0, 1, length.out = qn), type = 8)
+  # bin "sim" observations into quantiles. Will use these indices to 
+  #   index deltas vector for adjustment
+  qi <- .bincode(sim, qx, include.lowest = TRUE)
   
-  test <- q_sim[q_sim %in% names(q_dup)]
+  # duplicate quantiles are not represented in this binning,
+  #   need to represent for all deltas to be applied
+  dup_qx <- unique(qx[duplicated(qx)])
+  dup_qi <- sort(unique(qi[which(qx[qi + 1] %in% dup_qx)]))
+  last_dupi <- c((dup_qi - 1)[-1], length(qx))
+  dup_qi <- dup_qi + as.numeric(paste0("0.", last_dupi))
   
-  x2 <- which(sim %in% q_dup)
-  
-  q_ids <- .bincode(sim, q_sim, include.lowest = TRUE)
-  
-  x1 <- q_ids[which(q_ids %in% q_ids[duplicated(q_ids)])]
-  
-  q0 <- as.numeric(which(q_sim == 0))
-  nq0 <- length(q0)
-  q_ids <- as.numeric(cut(sim_jit, breaks = qs)) #+ nq0
-  suppressWarnings(q_ids[is.na(q_ids)] <- q0)
-  
-  # loop through unique quantiles
-  for(i in 1:length(qs)){
-    if(i == 1){
-      i_s <- which(sim == qs[i])
-      q_mem <- 0
-    }else{
-      i_s <- which(round(sim, 10) <= qs[i] & 
-                     round(sim, 10) > qs[i - 1])
-    }
-    # occasionally, quantiles are determined where no data will fall
-    #   just skip these
-    n_i <- length(i_s)
-    if(n_i == 0){next}
-    dup_q <- q_t[i]
-    
-    # randomly apply quantile id's to the indices of duplicated quantiles
-    if(n_i > 1){
-      names(i_s) <- (as.numeric(cut_number(i_s, dup_q)) + q_mem)[sample(n_i)]
-    } else {
-      names(i_s) <- 1 + q_mem
-    }
-    q_ids <- c(q_ids, i_s)
-    q_mem <- dup_q + q_mem
+  # distribute duplicated quantile indices in place of repeated 
+  tempFun <- function(dup_qi, qi){
+    end <- as.integer(substring(round(dup_qi - trunc(dup_qi), 3), 3))
+    dup_qi <- trunc(dup_qi)
+    qij <- which(qi == dup_qi)
+    n <- length(qij)
+    qis <- rep(0, n)
+    suppressWarnings(qis[rep(TRUE, n)] <- dup_qi:end)
+    names(qis) <- qij
+    qis
   }
-  q_ids <- q_ids[order(q_ids)]
-  q_adj <- sim - as.numeric(q_diff[as.numeric(names(q_ids))])
-  # q_adj <- if_else(q_adj < 0, 0, q_adj)
-  return(q_adj)
+  # and replace qi's with these recycled indices
+  new_qi <- unlist(lapply(dup_qi, tempFun, qi))
+  qij <- as.integer(names(new_qi))
+  qi[qij] <- new_qi
+  
+  # return adjusted
+  sim - q_deltas[qi]
 }
 
 #------------------------------------------------------------------------------
