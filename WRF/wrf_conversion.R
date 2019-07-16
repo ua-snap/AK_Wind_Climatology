@@ -15,9 +15,8 @@ datadir <- file.path(workdir, "data")
 # adjusted ASOS data
 asos_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
 # WRF data
-wrf_data_dir <- file.path(datadir, "WRF")
-wrf_raw_dir <- file.path(wrf_data_dir, "stations_wrf_raw")
-wrf_dir <- file.path(wrf_data_dir, "stations_wrf")
+wrf_raw_dir <- file.path(datadir, "WRF_stations_raw")
+wrf_dir <- file.path(datadir, "WRF_stations")
 
 #------------------------------------------------------------------------------
 

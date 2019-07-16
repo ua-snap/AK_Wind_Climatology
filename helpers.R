@@ -47,7 +47,7 @@ qMapWind <- function(obs, sim, qn = 0.001){
   qi[qij] <- new_qi
   
   # return adjusted
-  sim - q_deltas[qi]
+  sim - as.numeric(q_deltas)[qi]
 }
 
 #------------------------------------------------------------------------------

@@ -21,18 +21,16 @@ library(ggplot2)
 
 workdir <- getwd()
 datadir <- file.path(workdir, "data")
-stations_wrf_dir_raw <- file.path(datadir, "WRF", "stations_wrf_raw")
-stations_wrf_dir <- file.path(datadir, "WRF", "stations_wrf")
-stations_wrf_dir_adj <- file.path(datadir, "WRF", "stations_wrf_adj")
+wrf_dir_raw <- file.path(datadir, "WRF_stations_raw")
 # select stations meta data
 asos_meta_path <- file.path(datadir, "AK_ASOS_select_stations.Rds")
 select_stations <- readRDS(asos_meta_path)
 # select station stids
 stids <- unique(select_stations$stid)
 # u10 and v10 historical directories (from external drive)
-wrf_data_dir <- "F:/Wind_Climatology/data/WRF"
-u10_dir <- file.path(wrf_data_dir, "u10")
-v10_dir <- file.path(wrf_data_dir, "v10")
+wrf_output_dir <- "F:/Wind_Climatology/data/WRF"
+u10_dir <- file.path(wrf_output_dir, "u10")
+v10_dir <- file.path(wrf_output_dir, "v10")
 # setup years for iteration
 start_date <- ymd("1979-01-01")
 end_date <- ymd("2015-01-01")
@@ -94,7 +92,7 @@ saveRDS(stid_wrf_ind, file.path(datadir, "stid_wrf_ind.Rds"))
 #-- Extract WRF Output --------------------------------------------------------
 # initialize data frames for saving components
 for(i in seq_along(stids)){
-  save_path <- file.path(stations_wrf_dir_raw, 
+  save_path <- file.path(wrf_dir_raw, 
                          paste0(stids[i], "_wrf_raw.Rds"))
   df <- data.frame(stid = character(),
                    ts = ymd_hms(),
@@ -119,7 +117,7 @@ for(i in seq_along(target_years)){
   u10_ts <- u10_start + hours(u10_ts)
   
   for(j in seq_along(stids)){
-    station_path <- file.path(stations_wrf_dir_raw, 
+    station_path <- file.path(wrf_dir_raw, 
                               paste0(stids[j], "_raw.Rds"))
     station <- readRDS(station_path)
     # extract data
