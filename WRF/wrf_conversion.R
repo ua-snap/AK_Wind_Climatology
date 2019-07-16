@@ -1,10 +1,17 @@
 # Script summary
 #
-# Convert velocity components
-#   To wind speeds in MPH and direction in degrees
+# Convert velocity components to wind speeds/directions in MPH/degrees for:
+# ERA-Interim
+#
+# CM3
+#
+# CCSM4
 #
 # Output files:
-#   /data/WRF/stations_wrf/"stids"_wrf.Rds
+#   /data/ERA_stations/"stids"_era.Rds
+#   /data/CM3_stations/"stids"_cm3.Rds
+#   /data/CCSM4_stations/"stids"_ccsm4.Rds
+
 
 
 
@@ -15,8 +22,8 @@ datadir <- file.path(workdir, "data")
 # adjusted ASOS data
 asos_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
 # WRF data
-wrf_raw_dir <- file.path(datadir, "WRF_stations_raw")
-wrf_dir <- file.path(datadir, "WRF_stations")
+era_raw_dir <- file.path(datadir, "ERA_stations_raw")
+era_dir <- file.path(datadir, "ERA_stations")
 
 #------------------------------------------------------------------------------
 
@@ -38,13 +45,13 @@ uv2wdws <- function(u,v) {
 }
 
 # loop through raw output, convert, save
-wrf_raw_paths <- file.path(wrf_raw_dir, list.files(wrf_raw_dir))
-for(i in seq_along(wrf_raw_paths)){
-  wrf_raw <- readRDS(wrf_raw_paths[i])
-  wdws <- uv2wdws(wrf_raw$u10, wrf_raw$v10)
-  wrf <- cbind(wrf_raw[, 1:2], wdws)
+era_raw_paths <- file.path(era_raw_dir, list.files(era_raw_dir))
+for(i in seq_along(era_raw_paths)){
+  era_raw <- readRDS(era_raw_paths[i])
+  wdws <- uv2wdws(era_raw$u10, era_raw$v10)
+  era <- cbind(era_raw[, 1:2], wdws)
   names(wrf)[3:4] <- c("drct", "sped")
-  stid <- wrf_raw[1, 1]
-  save_path <- file.path(wrf_dir, paste0(stid, "_wrf.Rds"))
-  saveRDS(wrf, save_path)
+  stid <- era_raw[1, 1]
+  save_path <- file.path(era_dir, paste0(stid, "_era.Rds"))
+  saveRDS(era, save_path)
 }
