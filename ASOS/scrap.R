@@ -81,6 +81,8 @@ ys <- quantile(palu_obs, seq(0, 1, length.out = hn), type = 8)
 xnew <- quantile(xs, seq(0, 1, 0.01), type = 8)
 booty <- quantile(ys, seq(0, 1, 0.01), type = 8)
 
+q_diff <- xs -ys
+
 # sample just to try and figure shit out
 samp_x <- palu_sim[61:65]
 est <- approx(xnew, booty, xout = samp_x)$y
@@ -92,33 +94,80 @@ j <- match(2.3, xnew) -1
 # intecept of line is mean of all y quantiles at 0
 mean(booty[1:j]) == est[1]
 
-
+# attmepting to quantile map with non-unique quantiles
 dup_qx <- unique(xs[duplicated(xs)])
-q_i <- .bincode(palu_sim, xs, include.lowest = TRUE)
-dup_qi <- unique(q_i[which(xs[q_i + 1] %in% dup_qx)])
+qi <- .bincode(palu_sim, xs, include.lowest = TRUE)
+dup_qi <- unique(qi[which(xs[qi + 1] %in% dup_qx)])
 # Could try adding last index of duplicated quantiles as names
 #   so could include "sampling" operation in lapply
 dup_qi <- sort(dup_qi)
 last_dupi <- c((dup_qi - 1)[-1], length(xs))
 dup_qi <- dup_qi + as.numeric(paste0("0.", last_dupi))
 
-lapply(dup_qi, tempFun, q_i = q_i)
 # extract duplicate
-tempFun <- function(dup_qi, q_i){
+tempFun <- function(dup_qi, qi){
   end <- as.integer(substring(round(dup_qi - trunc(dup_qi), 3), 3))
   dup_qi <- trunc(dup_qi)
-  q_i_j <- which(q_i == dup_qi)
-  n <- length(q_i_j)
+  qij <- which(qi == dup_qi)
+  n <- length(qij)
   qis <- rep(0, n)
-  suppressWarnings(qis[rep(TRUE, n)] <- 1:end)
-  names(qis) <- q_i_j
+  suppressWarnings(qis[rep(TRUE, n)] <- dup_qi:end)
+  names(qis) <- qij
   qis
 }
 
-temp <- unlist(lapply(dup_qi, tempFun, q_i = q_i))
-df1 <- data.frame(sped = palu_sim, 
-                  id = 1:length(palu_sim),
-                  )
+new_qi <- unlist(lapply(dup_qi, tempFun, qi))
+qij <- as.integer(names(new_qi))
+qi[qij] <- new_qi
+
+#q_ids <- q_ids[order(q_ids)]
+new_palu <- palu_sim - q_diff[qi]
+
+new_palu <- qMapWind(palu_obs, palu_sim)
+ggECDF_compare(palu_obs, palu_sim, new_palu)
+
+
+# suggestion from stack overflow
+hn <- 1000
+x <- palu_sim
+qx <- quantile(x, seq(0, 1, length.out = hn), type = 8)
+q_i <- .bincode(x, qx, include.lowest = TRUE)
+## Start off with the code provided in the question...
+#  1. For each distinct q_i, calculate the number of occurrances, and how far we can recycle it
+df <- data.frame(lower=sort(unique(q_i)), freq=as.integer(table(q_i)))
+df$upper <- c(df$lower[-1] - df$lower[-nrow(df)], 1) + df$lower - 1
+df$upper <- df$upper - as.numeric(df$upper > df$lower & qx[df$upper] < qx[df$upper + 1])
+
+#  2. Identify when there's a (single) number we can't recycle, and identify which position it's in
+#     e.g. is it the third time q_i == 10?
+df$special_case <- rep(NA, nrow(df))
+df$special_case[df$lower < df$upper] <- sapply(df$lower[df$lower < df$upper], function(low) {
+  bin <- x[q_i==low]
+  if(length(unique(bin)) > 1) {
+    return(match(min(bin), bin))} 
+  else return(NA)})
+
+# 3. For each row of df, get a vector of (possibly recycled) numbers
+recycled <- apply(df, 1, function(x) {
+  out <- rep(x["lower"]:x["upper"], length.out=x["freq"])
+  
+  # This part modifies the vector created to handle the 'special case'
+  if(!is.na(x["special_case"])) {
+    out[x["special_case"]] <- x["lower"]
+    if(x["special_case"] < x["freq"]) {
+      out[(x["special_case"]+1):x["freq"]] <- out[x["special_case"]:(x["freq"]-1)]
+    }
+  }
+  return(out)
+})
+
+# 3b. Make this follow the same order as q_i
+q_i_final <- unlist(recycled)[order(order(q_i))]
+
+q_i_final
+[1] 10  1 19 11  5 19 13 10 17 16 17  6  2 15  3  9 11  7  1 16  2  3  5 13  6
+
+
 
 #------------------------------------------------------------------------------
 

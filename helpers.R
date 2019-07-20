@@ -2,6 +2,9 @@
 #
 # Helper functions that I find myself coding repeatedly
 #
+# uv2wdws
+#   convert wind velocity components to direction (deg) and speed (mph)
+#
 # qMapWind
 #   custom quantile mapping function for wind speeds
 #
@@ -10,14 +13,38 @@
 
 
 
+#-- uv2wdws -------------------------------------------------------------------
+# function to apply to convert m/s components to mph and directions
+# borrowed from github/environmentalinformatics-marburg/Rsenal
+# modified to return mph
+uv2wdws <- function(u,v) {
+  
+  degrees <- function(radians) 180 * radians / pi
+  
+  mathdegs <- degrees(atan2(v, u))
+  wdcalc <- ifelse(mathdegs > 0, mathdegs, mathdegs + 360)
+  wd <- ifelse(wdcalc < 270, 270 - wdcalc, 270 - wdcalc + 360)
+  ws <- sqrt(u^2 + v^2) * 2.23694
+  
+  return(cbind(wd, ws))
+  
+}
+
+#------------------------------------------------------------------------------
+
 #-- qMapWind ------------------------------------------------------------------
 # Custom quantile mapping function
-qMapWind <- function(obs, sim, qn = 0.001){
-  require(ggplot2)
+qMapWind <- function(obs = NULL, sim, qn = 0.001, 
+                     ret.deltas = FALSE, use.deltas = NULL){
   qn <- round(1/qn)
-  qy <- quantile(obs, seq(0, 1, length.out = qn), type = 8)
   qx <- quantile(sim, seq(0, 1, length.out = qn), type = 8)
-  q_deltas <- qx - qy
+  
+  if(is.null(use.deltas)){
+    qy <- quantile(obs, seq(0, 1, length.out = qn), type = 8)
+    q_deltas <- qx - qy
+  } else {
+    q_deltas = use.deltas
+  }
   
   # bin "sim" observations into quantiles. Will use these indices to 
   #   index deltas vector for adjustment
@@ -46,8 +73,11 @@ qMapWind <- function(obs, sim, qn = 0.001){
   qij <- as.integer(names(new_qi))
   qi[qij] <- new_qi
   
+  sim_adj <- sim - as.numeric(q_deltas)[qi]
   # return adjusted
-  sim - as.numeric(q_deltas)[qi]
+  if(ret.deltas == TRUE){
+    return(list(deltas = q_deltas, sim_adj = sim_adj))
+  } else {return(sim_adj)}
 }
 
 #------------------------------------------------------------------------------
