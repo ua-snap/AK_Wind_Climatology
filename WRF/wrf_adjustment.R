@@ -8,25 +8,32 @@
 #
 # ERA-Interim
 #
-# CSM3
+# CSM3 (historical and future)
 #
-# CCSM4
+# CCSM4 (historical and future)
+#
+# Convert CSV
+#   save csv files of "historical" and "future" output (not the same 
+#   as in model runs)
 #
 # Output files:
 #   /data/ERA_stations_adj/"stids"_era_adj.Rds
 #   /data/ERA_stations_adj_csv/"stids"_era_adj.csv
 #   /data/CM3_stations_adj/"stids"_cm3h_adj.Rds
 #   /data/CM3_stations_adj/"stids"_cm3f_adj.Rds
-#   /data/CM3_stations_adj_csv/"stids"_cm3_adj.csv
+#   /data/CM3_stations_adj_csv/"stids"_cm3h_adj.csv
+#   /data/CM3_stations_adj_csv/"stids"_cm3f_adj.csv
 #   /data/CCSM4_stations_adj/"stids"_ccsm4h_adj.Rds
 #   /data/CCSM4_stations_adj/"stids"_ccsm4f_adj.Rds
-#   /data/CCSM4_stations_adj_csv/"stids"_ccsm4_adj.csv
+#   /data/CCSM4_stations_adj_csv/"stids"_ccsm4h_adj.csv
+#   /data/CCSM4_stations_adj_csv/"stids"_ccsm4f_adj.csv
 
 
 
 #-- Setup ---------------------------------------------------------------------
 library(dplyr)
 library(lubridate)
+library(progress)
 
 workdir <- getwd()
 datadir <- file.path(workdir, "data")
@@ -109,11 +116,8 @@ for(i in seq_along(cm3h_paths)){
   # save data
   cm3_adj_path <- file.path(cm3_adj_dir, 
                             paste0(stid, "_cm3h_adj.Rds"))
-  cm3_adj_csv_path <- file.path(cm3_adj_csv_dir, 
-                                paste0(stid, "_cm3h_adj.csv"))
-  saveRDS(cm3, cm3_adj_path)
-  write.csv(cm3, cm3_adj_csv_path, row.names = FALSE)
-  
+   saveRDS(cm3, cm3_adj_path)
+
   # plot and save ECDF comparisons
   ecdf_path <- file.path(figdir, "cm3_adj_ecdfs", paste0(stid, "_cm3h.png"))
   sim_samp <- sample(length(sim), 100000)
@@ -142,11 +146,8 @@ for(i in seq_along(cm3h_paths)){
   # save data
   cm3_adj_path <- file.path(cm3_adj_dir, 
                             paste0(stid, "_cm3f_adj.Rds"))
-  cm3_adj_csv_path <- file.path(cm3_adj_csv_dir, 
-                                paste0(stid, "_cm3f_adj.csv"))
   saveRDS(cm3, cm3_adj_path)
-  write.csv(cm3, cm3_adj_csv_path, row.names = FALSE)
-  
+
   # plot and save ECDF comparisons
   ecdf_path <- file.path(figdir, "cm3_adj_ecdfs", paste0(stid, "_cm3f.png"))
   sim_samp <- sample(length(sim), 100000)
@@ -191,11 +192,8 @@ for(i in seq_along(ccsm4h_paths)){
   # save data
   ccsm4_adj_path <- file.path(ccsm4_adj_dir, 
                             paste0(stid, "_ccsm4h_adj.Rds"))
-  ccsm4_adj_csv_path <- file.path(ccsm4_adj_csv_dir, 
-                                paste0(stid, "_ccsm4h_adj.csv"))
   saveRDS(ccsm4, ccsm4_adj_path)
-  write.csv(ccsm4, ccsm4_adj_csv_path, row.names = FALSE)
-  
+
   # plot and save ECDF comparisons
   ecdf_path <- file.path(figdir, "ccsm4_adj_ecdfs", paste0(stid, "_ccsm4h.png"))
   sim_samp <- sample(length(sim), 100000)
@@ -224,11 +222,8 @@ for(i in seq_along(ccsm4h_paths)){
   # save data
   ccsm4_adj_path <- file.path(ccsm4_adj_dir, 
                             paste0(stid, "_ccsm4f_adj.Rds"))
-  ccsm4_adj_csv_path <- file.path(ccsm4_adj_csv_dir, 
-                                paste0(stid, "_ccsm4f_adj.csv"))
   saveRDS(ccsm4, ccsm4_adj_path)
-  write.csv(ccsm4, ccsm4_adj_csv_path, row.names = FALSE)
-  
+
   # plot and save ECDF comparisons
   ecdf_path <- file.path(figdir, "ccsm4_adj_ecdfs", paste0(stid, "_ccsm4f.png"))
   sim_samp <- sample(length(sim), 100000)
@@ -245,3 +240,22 @@ for(i in seq_along(ccsm4h_paths)){
 }
 
 #------------------------------------------------------------------------------
+
+#-- Save CSVs -----------------------------------------------------------------
+cm3_dir <- file.path(datadir, "CM3_stations")
+cm3_adj_dir <- file.path(datadir, "CM3_stations_adj")
+cm3_adj_csv_dir <- file.path(datadir, "CM3_stations_adj_csv")
+
+cm3h_paths <- list.files(cm3_dir, pattern = "cm3h", full.names = TRUE)
+cm3f_paths <- list.files(cm3_dir, pattern = "cm3f", full.names = TRUE)
+
+ccsm4_dir <- file.path(datadir, "CCSM4_stations")
+ccsm4_adj_dir <- file.path(datadir, "CCSM4_stations_adj")
+ccsm4_adj_csv_dir <- file.path(datadir, "CCSM4_stations_adj_csv")
+
+ccsm4h_paths <- list.files(ccsm4_dir, pattern = "ccsm4h", full.names = TRUE)
+ccsm4f_paths <- list.files(ccsm4_dir, pattern = "ccsm4f", full.names = TRUE)
+
+pb <- progress_bar$new(total = length(cm3h_paths),
+                       format = " Quantile Mapping CM3 data [:bar] :percent")
+

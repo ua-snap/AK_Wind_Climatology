@@ -63,6 +63,8 @@ u10 <- nc_open(u10_path)
 # extract x and y from u10
 xc <- ncvar_get(u10, varid = "xc")
 yc <- ncvar_get(u10, varid = "yc")
+nx <- length(xc)
+ny <- length(yc)
 # extract time 0 layer of u component
 t0 <- ncvar_get(u10, "u10", count = c(nx, ny, 1))
 # close connection
@@ -81,11 +83,11 @@ r <- raster(t0, xmn = bounds[1], xmx = bounds[2],
 crs1 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs+ towgs84=0,0,0")
 # select coords and transform
 stations_sp <- select_stations %>% 
-  select(lon, lat) %>% 
+  dplyr::select(lon, lat) %>% 
   SpatialPoints(proj4string = crs1) %>%
   spTransform(wrf_crs)
 # interset points with raster
-u10_select <- extract(r, stations_sp, method = "simple")
+u10_select <- raster::extract(r, stations_sp, method = "simple")
 # can try to match extracted wind components
 #   not useful if there are duplicate values
 anyDuplicated(t0)

@@ -1,0 +1,130 @@
+---
+title: "ERA-Interim High Wind Event Sample Comparison"
+output: pdf_document
+---
+## Nome
+```{r setup, echo = FALSE, fig.height = 3, fig.width = 8, warning = FALSE, message = FALSE}
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(tidyr)
+
+knitr::opts_chunk$set(root.dir = "../")
+# directories
+workdir <- knitr::opts_chunk$get("root.dir")
+datadir <- file.path(workdir, "data")
+asos_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
+era_adj_dir <- file.path(datadir, "ERA_stations_adj")
+
+era <- readRDS(file.path(era_adj_dir, "PAOM_era_adj.Rds"))
+asos <- readRDS(file.path(asos_adj_dir, "PAOM.Rds"))
+
+t_start <- ymd_hms(c("1988-02-03 05:00:00",
+                   "1998-04-09 22:00:00",
+                   "2006-02-18 21:00:00",
+                   "2011-11-08 21:00:00",
+                   "2014-01-17 13:00:00"))
+
+for(i in seq_along(t_start)){
+  start <- t_start[i] - hours(5)
+  end <- start + hours(60)
+  
+  asos_event <- asos %>% 
+    filter(t_round >= start & t_round <= end) %>%
+    select(t_round, sped_adj) %>% 
+    rename(ts = t_round, ASOS = sped_adj)
+
+  event_df <- era %>% 
+    filter(ts >= start & ts <= end) %>%
+    select(ts, sped_adj) %>%
+    rename(ERA = sped_adj) %>%
+    left_join(asos_event, by = "ts") %>%
+    gather("Source", "sped", -ts)
+    
+  p <- ggplot(event_df, aes(ts, sped, color = Source)) + 
+    geom_line(size = 1) +
+    xlab("") + ylab("Speed (mph)") + 
+    ggtitle("PAOM", subtitle = t_start[i])
+  
+  print(p)
+  
+}
+
+era <- readRDS(file.path(era_adj_dir, "PABR_era_adj.Rds"))
+asos <- readRDS(file.path(asos_adj_dir, "PABR.Rds"))
+```
+
+
+## Barrow
+```{r barrow, echo = FALSE, fig.height = 3, fig.width = 8, warning = FALSE, message = FALSE}
+
+# directories
+workdir <- knitr::opts_chunk$get("root.dir")
+datadir <- file.path(workdir, "data")
+asos_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
+era_adj_dir <- file.path(datadir, "ERA_stations_adj")
+
+#era <- readRDS(file.path(era_adj_dir, "PABR_era_adj.Rds"))
+#asos <- readRDS(file.path(asos_adj_dir, "PABR.Rds"))
+
+t_start <- ymd_hms(c("1989-02-25 13:00:00",
+                   "1994-02-01 05:00:00",
+                   "2000-11-10 06:00:00",
+                   "2011-11-08 21:00:00",
+                   "2006-10-08 14:00:00"))
+
+for(i in seq_along(t_start)){
+  start <- t_start[i] - hours(5)
+  end <- start + hours(60)
+  
+  asos_event <- asos %>% 
+    filter(t_round >= start & t_round <= end) %>%
+    select(t_round, sped_adj) %>% 
+    rename(ts = t_round, ASOS = sped_adj)
+
+  event_df <- era %>% 
+    filter(ts >= start & ts <= end) %>%
+    select(ts, sped_adj) %>%
+    rename(ERA = sped_adj) %>%
+    left_join(asos_event, by = "ts") %>%
+    gather("Source", "sped", -ts)
+    
+  p <- ggplot(event_df, aes(ts, sped, color = Source)) + 
+    geom_line(size = 1) +
+    xlab("") + ylab("Speed (mph)") + 
+    ggtitle("PABR", subtitle = t_start[i])
+  
+  print(p)
+  
+}
+
+```
+
+```{r Fairbanks}
+knitr::opts_chunk$set(root.dir = "../")
+# directories
+workdir <- knitr::opts_chunk$get("root.dir")
+datadir <- file.path(workdir, "data")
+asos_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
+era_adj_dir <- file.path(datadir, "ERA_stations_adj")
+
+era <- readRDS(file.path(era_adj_dir, "PAFA_era_adj.Rds"))
+asos <- readRDS(file.path(asos_adj_dir, "PAFA.Rds"))
+
+asos_event <- asos %>% 
+  dplyr::select(t_round, sped_adj) %>% 
+  rename(ts = t_round, ASOS = sped_adj)
+
+event_df <- era %>% 
+  dplyr::select(ts, sped_adj) %>%
+  rename(ERA = sped_adj) %>%
+  left_join(asos_event, by = "ts") %>%
+  gather("Source", "sped", -ts) %>%
+  mutate(M = ymd(paste0(format(ts, "%Y-%m"), "-01"))) %>%
+  group_by(Source, M) %>%
+  summarise(avg_sped_mo = mean(sped, na.rm = TRUE))
+  
+p <- ggplot(event_df, aes(M, avg_sped_mo, color = Source)) + 
+  geom_line(size = 1) +
+  xlab("") + ylab("Speed (mph)") 
+```

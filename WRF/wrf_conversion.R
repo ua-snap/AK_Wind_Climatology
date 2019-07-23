@@ -3,14 +3,16 @@
 # Convert velocity components to wind speeds/directions in MPH/degrees for:
 # ERA-Interim
 #
-# CM3
+# CM3 (historical and future separately)
 #
-# CCSM4
+# CCSM4 (historical and future separately)
 #
 # Output files:
 #   /data/ERA_stations/"stids"_era.Rds
-#   /data/CM3_stations/"stids"_cm3.Rds
-#   /data/CCSM4_stations/"stids"_ccsm4.Rds
+#   /data/CM3_stations/"stids"_cm3h.Rds
+#   /data/CM3_stations/"stids"_cm3f.Rds
+#   /data/CCSM4_stations/"stids"_ccsm4h.Rds
+#   /data/CCSM4_stations/"stids"_ccsm4f.Rds
 
 
 
@@ -22,13 +24,6 @@ workdir <- getwd()
 datadir <- file.path(workdir, "data")
 # adjusted ASOS data
 asos_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
-# WRF data
-era_raw_dir <- file.path(datadir, "ERA_stations_raw")
-era_dir <- file.path(datadir, "ERA_stations")
-cm3_raw_dir <- file.path(datadir, "CM3_stations_raw")
-cm3_dir <- file.path(datadir, "CM3_stations")
-ccsm4_raw_dir <- file.path(datadir, "CCSM4_stations_raw")
-ccsm4_dir <- file.path(datadir, "CCSM4_stations")
 
 # helper functions for qmapping
 helpers <- file.path(workdir, "code/helpers.R")
@@ -37,6 +32,10 @@ source(helpers)
 #------------------------------------------------------------------------------
 
 #-- Convert ERA-Interim components --------------------------------------------
+# ERA-Interim data directories
+era_raw_dir <- file.path(datadir, "ERA_stations_raw")
+era_dir <- file.path(datadir, "ERA_stations")
+
 # loop through raw output, convert, save
 era_raw_paths <- file.path(era_raw_dir, list.files(era_raw_dir))
 pb <- progress_bar$new(total = length(era_raw_paths),
@@ -55,6 +54,10 @@ for(i in seq_along(era_raw_paths)){
 #------------------------------------------------------------------------------
 
 #-- Convert CM3 components ----------------------------------------------------
+# cm3 data directories
+cm3_raw_dir <- file.path(datadir, "CM3_stations_raw")
+cm3_dir <- file.path(datadir, "CM3_stations")
+
 # loop through raw output, convert, save
 # historic CM3 data
 cm3h_raw_paths <- list.files(cm3_raw_dir, pattern = "cm3h", full.names = TRUE)
@@ -89,6 +92,10 @@ for(i in seq_along(cm3f_raw_paths)){
 #------------------------------------------------------------------------------
 
 #-- Convert CCSM4 components --------------------------------------------------
+# ccsm4 data directories
+ccsm4_raw_dir <- file.path(datadir, "CCSM4_stations_raw")
+ccsm4_dir <- file.path(datadir, "CCSM4_stations")
+
 # loop through raw output, convert, save
 # historic ccsm4 data
 ccsm4h_raw_paths <- list.files(ccsm4_raw_dir, pattern = "ccsm4h", 

@@ -11,8 +11,11 @@ library(lubridate)
 
 workdir <- getwd()
 datadir <- file.path(workdir, "data")
-asos_select_adj_dir <- file.path(datadir, "AK_ASOS_allsites_wind_19800101_to_20150101_adj")
+asos_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
 figdir <- file.path(workdir, "figures")
+
+# WRF directories
+era_adj_dir <- file.path(datadir, "ERA_stations_adj")
 
 # daily data
 # all daily data
@@ -41,6 +44,36 @@ asos_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
 cpts_path <- file.path(asos_adj_dir, "cpts_df.Rds")
 cpts_df <- readRDS(cpts_path)
 
+#------------------------------------------------------------------------------
+
+#-- ERA-Interim high wind events mismatch -------------------------------------
+# Sarah noticed discrepancies between observed and ERA-interim data for high
+#   wind events
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+
+era <- readRDS(file.path(era_adj_dir, "PAOM_era_adj.Rds"))
+asos <- readRDS(file.path(asos_adj_dir, "PAOM.Rds"))
+
+start <- ymd_hms("2011-11-08 20:00:00")
+end <- ymd_hms("2011-11-10 23:59:59")
+
+asos_event <- asos %>% 
+  filter(t_round >= start & t_round <= end) %>%
+  select(t_round, sped_adj) %>% 
+  rename(ts = t_round, asos = sped_adj)
+
+event_df <- era %>% 
+  filter(ts >= start & ts <= end) %>%
+  select(ts, sped_adj) %>%
+  rename(era = sped_adj) %>%
+  left_join(asos_event, by = "ts") %>%
+  gather("source", "sped", -ts)
+  
+ggplot(event_df, aes(ts, sped, col = source)) + 
+  geom_line(size = 1) +
+  xlab("") + ylab("Speed (mph)") + ggtitle("PAOM")
 #------------------------------------------------------------------------------
 
 #-- Quantile Mapping ----------------------------------------------------------
@@ -246,7 +279,7 @@ p4 <- grid.arrange(arrangeGrob(p1 + theme(legend.position="none"),
 
 #-- geom_smooth ---------------------------------------------------------------
 # having trouble getting geom_smooth to show on these data
-asos_path <- file.path(asos_select_adj_dir, "PAFA_hour.Rds")
+asos_path <- file.path(asos_adj_dir, "PAFA_hour.Rds")
 asos_station <- readRDS(asos_path)
 asos_station <- asos_station %>%
   mutate(year = year(date), 
@@ -274,7 +307,7 @@ library(openair)
 library(circular)
 
 # read fairbanks station data in
-asos_station_path <- file.path(asos_select_adj_dir, "PAFA_hour.Rds")
+asos_station_path <- file.path(asos_adj_dir, "PAFA_hour.Rds")
 asos_station <- readRDS(asos_station_path)
 asos_station$drct <- as.numeric(asos_station$drct)
 # openair package (blocky and junk)
