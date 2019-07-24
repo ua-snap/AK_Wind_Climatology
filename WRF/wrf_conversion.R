@@ -37,7 +37,7 @@ era_raw_dir <- file.path(datadir, "ERA_stations_raw")
 era_dir <- file.path(datadir, "ERA_stations")
 
 # loop through raw output, convert, save
-era_raw_paths <- file.path(era_raw_dir, list.files(era_raw_dir))
+era_raw_paths <- list.files(era_raw_dir, full.names = TRUE)
 pb <- progress_bar$new(total = length(era_raw_paths),
                        format = " Converting ERA components [:bar] :percent")
 for(i in seq_along(era_raw_paths)){

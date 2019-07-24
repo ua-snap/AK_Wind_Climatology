@@ -70,4 +70,63 @@ anyDuplicated(t1)
 which(t1 == test, arr.ind = TRUE)
 f1 <- function(x, set){which(set == x, arr.ind = TRUE)}
 station_cells <- sapply(test, f1, t1)
+
+
+
+# COMPARE TIME SERIES BETWEEN WRF INDICES FROM RICK
+asos_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
+asos <- readRDS(file.path(asos_adj_dir, "PAFA.Rds"))
+wrf_output_dir <- "F:/Wind_Climatology/data/WRF_output"
+u10_dir <- file.path(wrf_output_dir, "ERA_u10")
+u10_fname <- "u10_hourly_wrf_ERA-Interim_historical_"
+u10_path <- file.path(u10_dir, paste0(u10_fname, 2014, ".nc"))
+v10_dir <- file.path(wrf_output_dir, "ERA_v10")
+v10_fname <- "v10_hourly_wrf_ERA-Interim_historical_"
+v10_path <- file.path(v10_dir, paste0(v10_fname, 2014, ".nc"))
+u10 <- nc_open(u10_path)
+v10 <- nc_open(v10_path)
+# values for fairbanks provided by Rick
+wrf_i <- 127
+wrf_j <- 141
+era_u10 <- ncvar_get(u10, "u10", start = c(wrf_i, wrf_j, 1),
+                 count = c(1, 1, -1))
+era_v10 <- ncvar_get(v10, "v10", start = c(wrf_i, wrf_j, 1),
+                     count = c(1, 1, -1))
+nc_close(u10)
+nc_close(v10)
+start <- ymd_hms("2014-01-01 00:00:00")
+end <- ymd_hms("2014-12-31 23:00:00")
+era_ts <- seq(start, end, by = "hour")
+era <- bind_cols(data.frame(ts = era_ts), 
+                 as.data.frame(uv2wdws(era_u10, era_v10)))
+asos_event <- asos %>% 
+  filter(t_round >= start & t_round <= end) %>%
+  dplyr::select(t_round, sped_adj) %>% 
+  rename(ts = t_round, ASOS = sped_adj)
+event_df <- era %>% 
+  dplyr::select(ts, ws) %>%
+  rename(ERA = ws) %>%
+  left_join(asos_event, by = "ts") %>%
+  gather("Source", "sped", -ts) %>%
+  mutate(Date = ymd(format(ts, "%Y-%m-%d"))) %>%
+  group_by(Source, Date) %>%
+  summarise(avg_sped = mean(sped, na.rm = TRUE))
+p <- ggplot(event_df, aes(Date, avg_sped, color = Source)) + 
+  geom_line(size = 1) +
+  xlab("") + ylab("Speed (mph)") 
+
+
+anc <- nc_open(file.path(datadir, "geo_em.d01.nc"))
+xlat_m <- ncvar_get(anc, "XLAT_M")
+xlon_m <- ncvar_get(anc, "XLONG_M")
+clat <- ncvar_get(anc, "CLAT")
+
+coords <- array(c(64.80389, -147.87611), dim = c(1, 1, 2))
+coords <- c(64.80389, -147.87611)
+coords <- c(58.35497, -134.57628)
+wrf_coords <- array(c(xlat_m, xlon_m), dim = c(262, 262, 2))
+euc.dist <- function(x1, x2) sqrt(sum((x1 - x2) ^ 2))
+temp <- apply(wrf_coords, c(1, 2), euc.dist, coords)
+which(temp == min(temp), arr.ind = TRUE)
+
 #------------------------------------------------------------------------------

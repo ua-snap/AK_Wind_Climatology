@@ -73,9 +73,12 @@ saveRDS(stid_wrf_ind, file.path(datadir, "stid_wrf_ind.Rds"))
 #------------------------------------------------------------------------------
 
 #-- Extract ERA-Interim WRF Output --------------------------------------------
+library(ncdf4)
+library(dplyr)
+library(lubridate)
 {
   # setup years for iteration (ERA only)
-  start_date <- ymd("1979-01-01")
+  start_date <- ymd("1980-01-01")
   end_date <- ymd("2015-01-01")
   target_years <- year(start_date):year(end_date)
   # u10 and v10 historical directories (from external drive)
@@ -92,7 +95,8 @@ saveRDS(stid_wrf_ind, file.path(datadir, "stid_wrf_ind.Rds"))
                      stringsAsFactors = FALSE)
     saveRDS(df, save_path)
   }
-  
+  pb <- progress_bar$new(total = length(target_years),
+                         format = " Extracting ERA output [:bar] :percent")
   # loop through .nc files and save 
   for(i in seq_along(target_years)){
     # open connections
@@ -135,6 +139,7 @@ saveRDS(stid_wrf_ind, file.path(datadir, "stid_wrf_ind.Rds"))
     # close connections - probably should? overwritten anyway..
     nc_close(u10)
     nc_close(v10)
+    pb$tick()
   }
 }
   
@@ -147,8 +152,8 @@ library(lubridate)
 {
   # setup years for iteration 
   # "historical" period
-  h_start <- ymd("1979-01-01")
-  h_end <- ymd("2005-01-01")
+  h_start <- ymd("1980-01-01")
+  h_end <- ymd("2005-12-31")
   # "rcp" period
   rcp_start <- ymd("2006-01-01")
   rcp_end <- ymd("2100-01-01")
@@ -173,8 +178,9 @@ library(lubridate)
                      stringsAsFactors = FALSE)
     saveRDS(df, save_path)
   }
-  
-    # loop through "historical" .nc files and save 
+  pb <- progress_bar$new(total = length(h_years),
+                         format = " Extracting historical CM3 output [:bar] :percent")
+  # loop through "historical" .nc files and save 
   for(i in seq_along(h_years)){
     # open connections
     u10_fname <- "u10_hourly_wrf_GFDL-CM3_historical_"
@@ -216,7 +222,7 @@ library(lubridate)
     # close connections - probably should? overwritten anyway..
     nc_close(u10)
     nc_close(v10)
-    print(i)
+    pb$tick()
   }
   
   # initialize data frames for saving future components
@@ -230,7 +236,8 @@ library(lubridate)
                      stringsAsFactors = FALSE)
     saveRDS(df, save_path)
   }
-  
+  pb <- progress_bar$new(total = length(rcp_years),
+                         format = " Extracting future CM3 output [:bar] :percent")
   # loop through "rcp" .nc files and save 
   for(i in seq_along(rcp_years)){
     # open connections
@@ -273,7 +280,7 @@ library(lubridate)
     # close connections - probably should? overwritten anyway..
     nc_close(u10)
     nc_close(v10)
-    print(i)
+    pb$tick()
   }
 }
 
@@ -283,8 +290,8 @@ library(lubridate)
 {
   # setup years for iteration 
   # "historical" period
-  h_start <- ymd("1979-01-01")
-  h_end <- ymd("2005-01-01")
+  h_start <- ymd("1980-01-01")
+  h_end <- ymd("2005-12-31")
   # "rcp" period
   rcp_start <- ymd("2006-01-01")
   rcp_end <- ymd("2100-01-01")
@@ -309,7 +316,8 @@ library(lubridate)
                      stringsAsFactors = FALSE)
     saveRDS(df, save_path)
   }
-  
+  pb <- progress_bar$new(total = length(h_years),
+                         format = " Extracting historical CCSM4 output [:bar] :percent")
   # loop through "historical" .nc files and save 
   for(i in seq_along(h_years)){
     # open connections
@@ -352,7 +360,7 @@ library(lubridate)
     # close connections - probably should? overwritten anyway..
     nc_close(u10)
     nc_close(v10)
-    print(paste0("CCSM4 hist ", h_years[i], " done"))
+    pb$tick()
   }
   
   # initialize data frames for saving future components
@@ -366,7 +374,8 @@ library(lubridate)
                      stringsAsFactors = FALSE)
     saveRDS(df, save_path)
   }
-  
+  pb <- progress_bar$new(total = length(rcp_years),
+                         format = " Extracting future CCSM4 output [:bar] :percent")
   # loop through "rcp" .nc files and save 
   for(i in seq_along(rcp_years)){
     # open connections
@@ -409,7 +418,7 @@ library(lubridate)
     # close connections - probably should? overwritten anyway..
     nc_close(u10)
     nc_close(v10)
-    print(paste0("CCSM4 future ", rcp_years[i], " done"))
+    pb$tick()
   }
 }
 

@@ -34,9 +34,14 @@ uv2wdws <- function(u,v) {
 
 #-- qMapWind ------------------------------------------------------------------
 # Custom quantile mapping function
-qMapWind <- function(obs = NULL, sim, qn = 0.001, 
-                     ret.deltas = FALSE, use.deltas = NULL){
-  qn <- round(1/qn)
+qMapWind <- function(obs = NULL, sim, qn = 0.001,
+                     ret.deltas = FALSE, use.deltas = NULL,
+                     use.min = TRUE){
+  if(use.min){
+    qn <- min(length(obs), length(sim))
+  } else {
+    qn <- round(1/qn)
+  }
   qx <- quantile(sim, seq(0, 1, length.out = qn), type = 8)
   
   if(is.null(use.deltas)){

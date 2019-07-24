@@ -52,10 +52,11 @@ source(helpers)
 
 #-- Quantile Map ERA-Interim --------------------------------------------------
 # loop through ERA output data files and adjust
-era_files <- list.files(era_dir)
-for(i in seq_along(era_files)){
-  era_path <- file.path(era_dir, era_files[i])
-  era <- readRDS(era_path)
+era_paths <- list.files(era_dir, full.names = TRUE)
+pb <- progress_bar$new(total = length(era_raw_paths),
+                       format = " Quantile Mapping ERA Speeds [:bar] :percent")
+for(i in seq_along(era_paths)){
+  era <- readRDS(era_paths[i])
   stid <- era$stid[1]
   asos_path <- file.path(asos_adj_dir, paste0(stid, ".Rds"))
   asos <- readRDS(asos_path)
@@ -69,22 +70,8 @@ for(i in seq_along(era_files)){
   # save data
   era_adj_path <- file.path(era_adj_dir, 
                             paste0(stid, "_era_adj.Rds"))
-  era_adj_csv_path <- file.path(era_adj_csv_dir, 
-                                paste0(stid, "_era_adj.csv"))
   saveRDS(era, era_adj_path)
-  write.csv(era, era_adj_csv_path, row.names = FALSE)
-  
-  # plot and save ECDF comparisons
-  ecdf_path <- file.path(figdir, "era_adj_ecdfs", paste0(stid, "_era.png"))
-  sim_samp <- sample(length(sim), 100000)
-  n <- length(obs)
-  if(n > 100000){
-    obs_samp <- sample(n, 100000)
-  } else {obs_samp <- 1:n}
-  p1 <- ggECDF_compare(obs[obs_samp], 
-                       sim[sim_samp], 
-                       sim_adj[sim_samp], p_title = stid)
-  ggsave(ecdf_path, p1, width = 6.82, height = 4.58)
+  pb$tick()
 }
 
 #------------------------------------------------------------------------------
@@ -242,20 +229,85 @@ for(i in seq_along(ccsm4h_paths)){
 #------------------------------------------------------------------------------
 
 #-- Save CSVs -----------------------------------------------------------------
-cm3_dir <- file.path(datadir, "CM3_stations")
+# CM3 dirs
+era_adj_dir <- file.path(datadir, "era_stations_adj")
+era_adj_csv_dir <- file.path(datadir, "era_stations_adj_csv")
+# era paths
+era_paths <- list.files(era_adj_dir, full.names = TRUE)
+
+pb <- progress_bar$new(total = length(era_paths),
+                       format = " Creating ERA CSVs [:bar] :percent")
+for(i in seq_along(era_paths)){
+  # read, filter to target dates, save CSVs
+  era <- readRDS(era_paths[i]) %>%
+    filter(ts < ymd("2015-01-02"))
+  stid <- era$stid[1]
+  era_path <- file.path(era_adj_csv_dir, paste0(stid, "_era_adj.csv"))
+  write.csv(era, era_path, row.names = FALSE)
+  pb$tick()
+}
+
+# CM3 dirs
 cm3_adj_dir <- file.path(datadir, "CM3_stations_adj")
 cm3_adj_csv_dir <- file.path(datadir, "CM3_stations_adj_csv")
-
-cm3h_paths <- list.files(cm3_dir, pattern = "cm3h", full.names = TRUE)
-cm3f_paths <- list.files(cm3_dir, pattern = "cm3f", full.names = TRUE)
-
-ccsm4_dir <- file.path(datadir, "CCSM4_stations")
+# CM3 paths
+cm3h_paths <- list.files(cm3_adj_dir, pattern = "cm3h", full.names = TRUE)
+cm3f_paths <- list.files(cm3_adj_dir, pattern = "cm3f", full.names = TRUE)
+# CCSM4 dirs
 ccsm4_adj_dir <- file.path(datadir, "CCSM4_stations_adj")
 ccsm4_adj_csv_dir <- file.path(datadir, "CCSM4_stations_adj_csv")
-
-ccsm4h_paths <- list.files(ccsm4_dir, pattern = "ccsm4h", full.names = TRUE)
-ccsm4f_paths <- list.files(ccsm4_dir, pattern = "ccsm4f", full.names = TRUE)
+# CCSM4 paths
+ccsm4h_paths <- list.files(ccsm4_adj_dir, pattern = "ccsm4h", full.names = TRUE)
+ccsm4f_paths <- list.files(ccsm4_adj_dir, pattern = "ccsm4f", full.names = TRUE)
 
 pb <- progress_bar$new(total = length(cm3h_paths),
-                       format = " Quantile Mapping CM3 data [:bar] :percent")
+                       format = " Creating CSVs [:bar] :percent")
+# Loop through CM3 paths and save future/hist CSVs
+h_start <- ymd_hms("1980-01-01 00:00:00")
+h_end <- ymd_hms("2015-01-01 23:59:59")
+f_start <- ymd_hms("2066-01-01 00:00:00")
+f_end <- ymd_hms("2100-01-01 23:59:59")
+for(i in seq_along(cm3h_paths)){
+  # read, filter to target dates, save CSVs
+  cm3h <- readRDS(cm3h_paths[i])
+  cm3f <- readRDS(cm3f_paths[i])
+  cm3 <- bind_rows(cm3h, cm3f)
+  cm3h <- cm3 %>% filter(ts >= h_start & ts <= h_end)
+  cm3f <- cm3 %>% filter(ts >= f_start & ts <= f_end)
+  stid <- cm3f$stid[1]
+  cm3h_path <- file.path(cm3_adj_csv_dir, paste0(stid, "_cm3h_adj.csv"))
+  cm3f_path <- file.path(cm3_adj_csv_dir, paste0(stid, "_cm3f_adj.csv"))
+  write.csv(cm3h, cm3h_path, row.names = FALSE)
+  write.csv(cm3f, cm3f_path, row.names = FALSE)
+  pb$tick()
+}
 
+#------------------------------------------------------------------------------
+
+#-- Generate ECDFs ------------------------------------------------------------
+# plot and save ECDF comparisons
+# ERA-Interim
+era_adj_paths <- list.files(era_adj_dir, full.names = TRUE)
+pb <- progress_bar$new(total = length(era_raw_paths),
+                       format = " Plotting ECDFs from ERA Adjustment [:bar] :percent")
+for(i in seq_along(era_adj_paths)){
+  era <- readRDS(era_adj_paths[i])
+  stid <- era$stid[1]
+  asos <- readRDS(file.path(asos_adj_dir, paste0(stid, ".Rds")))
+  obs <- asos$sped_adj
+  sim <- era$sped
+  sim_adj <- era$sped_adj
+  ecdf_path <- file.path(figdir, "era_adj_ecdfs", paste0(stid, "_era.png"))
+  sim_samp <- sample(length(sim), 100000)
+  n <- length(obs)
+  if(n > 100000){
+    obs_samp <- sample(n, 100000)
+  } else {obs_samp <- 1:n}
+  p1 <- ggECDF_compare(obs[obs_samp], 
+                       sim[sim_samp], 
+                       sim_adj[sim_samp], p_title = stid)
+  ggsave(ecdf_path, p1, width = 6.82, height = 4.58)
+  pb$tick()
+}
+
+#------------------------------------------------------------------------------
