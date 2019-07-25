@@ -1,10 +1,18 @@
 # Script Summary
 #
-# Summarize ERA-Interim data by day and month
+# Summarize all adjusted WRF ouput data by day and month
 #
 # Output files:
-#   /data/AK_ASOS_daily_select_adj_19800101_to_20150101.Rds
-#   /data/AK_ASOS_monthly_select_adj_19800101_to_20150101.Rds
+#   /data/ERA_daily.Rds
+#   /data/ERA_monthly.Rds
+#   /data/CM3h_daily.Rds
+#   /data/CM3h_monthly.Rds
+#   /data/CM3f_daily.Rds
+#   /data/CM3f_monthly.Rds
+#   /data/CCSM4h_daily.Rds
+#   /data/CCSM4h_monthly.Rds
+#   /data/CCSM4f_daily.Rds
+#   /data/CCSM4f_monthly.Rds
 
 
 
@@ -15,64 +23,92 @@ library(lubridate)
 workdir <- getwd()
 datadir <- file.path(workdir, "data")
 era_adj_dir <- file.path(datadir, "ERA_stations_adj")
-# select station ids
-select_stations_path <- file.path(datadir, "AK_ASOS_select_stations.Rds")
-select_stations <- readRDS(select_stations_path)
-stids <- select_stations$stid
+era_adj_paths <- list.files(era_adj_dir, full.names = TRUE)
+cm3_adj_dir <- file.path(datadir, "CM3_stations_adj")
+cm3h_adj_paths <- list.files(cm3_adj_dir, pattern = "cm3h", full.names = TRUE)
+cm3f_adj_paths <- list.files(cm3_adj_dir, pattern = "cm3f", full.names = TRUE)
+ccsm4_adj_dir <- file.path(datadir, "CCSM4_stations_adj")
+ccsm4h_adj_paths <- list.files(ccsm4_adj_dir, full.names = TRUE, 
+                               pattern = "ccsm4h")
+ccsm4f_adj_paths <- list.files(ccsm4_adj_dir, full.names = TRUE,
+                               pattern = "ccsm4f")
 
 #------------------------------------------------------------------------------
 
-#-- Summarize By Day and Month ------------------------------------------------
-{# daily data frame
-  era_daily <- data.frame(stid = character(), 
-                           date = ymd(),
-                           obs_prop = double(), 
-                           avg_sped = double(),
-                           avg_sped_adj = double(),
-                           stringsAsFactors = FALSE)
-  # monthly data frame
-  era_monthly <- data.frame(stid = character(),
-                             ym_date = ymd(),
-                             obs_prop = double(),
-                             avg_sped = double(),
-                             avg_sped_adj = double(),
-                             stringsAsFactors = FALSE)
-  
+{#-- Summarize ERA By Day and Month -------------------------------------------
   # loop through selected/adjusted data and summarize by both day and month
-  for(i in seq_along(stids)){
-    era_station_path <- file.path(era_adj_dir, paste0(stids[i], ".Rds"))
-    era_station <- readRDS(era_station_path)
-    # Daily summary
-    # count number of hourly observations/24
-    asos_summary <- asos_station %>% 
-      group_by(stid, date) %>%
-      summarise(obs_prop = n()/24, 
-                avg_sped = mean(sped),
-                avg_sped_adj = mean(sped_adj)) %>%
-      select(stid, date, obs_prop, avg_sped, avg_sped_adj)
-    # append to daily
-    asos_daily <- bind_rows(asos_daily, asos_summary)
-    
-    # monthly summary
-    # count number of hourly observations/24
-    asos_summary <- asos_station %>% 
-      mutate(ym_date = ymd(paste(year(date), 
-                                 sprintf("%02d", month(date)), 
-                                 "01", sep = "-"))) %>%
-      group_by(stid, ym_date) %>%
-      summarise(obs_prop = n()/(days_in_month(unique(ym_date)) * 24), 
-                avg_sped = mean(sped),
-                avg_sped_adj = mean(sped_adj)) %>%
-      select(stid, ym_date, obs_prop, avg_sped, avg_sped_adj)
-    # append to daily
-    asos_monthly <- bind_rows(asos_monthly, asos_summary)
+  read_n_summarize <- function(path, by.day = TRUE){
+    if(by.day == TRUE){
+      readRDS(path) %>% 
+        mutate(date = ymd(format(ts, "%Y-%m-%d"))) %>%
+        group_by(stid, date) %>%
+        summarise(avg_sped = mean(sped),
+                  avg_sped_adj = mean(sped_adj)) %>%
+        select(stid, date, avg_sped, avg_sped_adj)
+    } else {
+      readRDS(path) %>% 
+        mutate(ym_date = ymd(paste0(format(ts, "%Y-%m"), "-01"))) %>%
+        group_by(stid, ym_date) %>%
+        summarise(avg_sped = mean(sped),
+                  avg_sped_adj = mean(sped_adj)) %>%
+        select(stid, ym_date, avg_sped, avg_sped_adj)
+    }
   }
   
-  asos_daily_path <- file.path(datadir, 
-                               "AK_ASOS_daily_select_adj_19800101_to_20150101.Rds")
-  saveRDS(asos_daily, asos_daily_path)
-  asos_monthly_path <- file.path(datadir, 
-                                 "AK_ASOS_monthly_select_adj_19800101_to_20150101.Rds")
-  saveRDS(asos_monthly, asos_monthly_path)}
+  # ERA-interim
+  era_daily <- bind_rows(lapply(era_adj_paths, read_n_summarize))
+  era_monthly <- bind_rows(lapply(era_adj_paths, read_n_summarize, 
+                                  by.day = FALSE))
+  era_daily_path <- file.path(datadir, 
+                               "ERA_daily.Rds")
+  saveRDS(era_daily, era_daily_path)
+  era_monthly_path <- file.path(datadir, 
+                                 "ERA_monthly.Rds")
+  saveRDS(era_monthly, era_monthly_path)
+  
+  # CM3 historical
+  cm3h_daily <- bind_rows(lapply(cm3h_adj_paths, read_n_summarize))
+  cm3h_monthly <- bind_rows(lapply(cm3h_adj_paths, read_n_summarize, 
+                                  by.day = FALSE))
+  cm3h_daily_path <- file.path(datadir, 
+                              "CM3h_daily.Rds")
+  saveRDS(cm3h_daily, cm3h_daily_path)
+  cm3h_monthly_path <- file.path(datadir, 
+                                "CM3h_monthly.Rds")
+  saveRDS(cm3h_monthly, cm3h_monthly_path)
+  
+  # CM3 future
+  cm3f_daily <- bind_rows(lapply(cm3f_adj_paths, read_n_summarize))
+  cm3f_monthly <- bind_rows(lapply(cm3f_adj_paths, read_n_summarize, 
+                                   by.day = FALSE))
+  cm3f_daily_path <- file.path(datadir, 
+                               "CM3f_daily.Rds")
+  saveRDS(cm3f_daily, cm3f_daily_path)
+  cm3f_monthly_path <- file.path(datadir, 
+                                 "CM3f_monthly.Rds")
+  saveRDS(cm3f_monthly, cm3f_monthly_path)
+  
+  # CCSM4 historical
+  ccsm4h_daily <- bind_rows(lapply(ccsm4h_adj_paths, read_n_summarize))
+  ccsm4h_monthly <- bind_rows(lapply(ccsm4h_adj_paths, read_n_summarize, 
+                                   by.day = FALSE))
+  ccsm4h_daily_path <- file.path(datadir, 
+                               "CCSM4h_daily.Rds")
+  saveRDS(ccsm4h_daily, ccsm4h_daily_path)
+  ccsm4h_monthly_path <- file.path(datadir, 
+                                 "CCSM4h_monthly.Rds")
+  saveRDS(ccsm4h_monthly, ccsm4h_monthly_path)
+  
+  # CCSM4 future
+  ccsm4f_daily <- bind_rows(lapply(ccsm4f_adj_paths, read_n_summarize))
+  ccsm4f_monthly <- bind_rows(lapply(ccsm4f_adj_paths, read_n_summarize, 
+                                   by.day = FALSE))
+  ccsm4f_daily_path <- file.path(datadir, 
+                               "CCSM4f_daily.Rds")
+  saveRDS(ccsm4f_daily, ccsm4f_daily_path)
+  ccsm4f_monthly_path <- file.path(datadir, 
+                                 "CCSM4f_monthly.Rds")
+  saveRDS(ccsm4f_monthly, ccsm4f_monthly_path)
+}
 
 #------------------------------------------------------------------------------

@@ -34,20 +34,18 @@ uv2wdws <- function(u,v) {
 
 #-- qMapWind ------------------------------------------------------------------
 # Custom quantile mapping function
-qMapWind <- function(obs = NULL, sim, qn = 0.001,
-                     ret.deltas = FALSE, use.deltas = NULL,
-                     use.min = TRUE){
-  if(use.min){
-    qn <- min(length(obs), length(sim))
-  } else {
-    qn <- round(1/qn)
-  }
-  qx <- quantile(sim, seq(0, 1, length.out = qn), type = 8)
-  
+qMapWind <- function(obs = NULL, sim, 
+                     ret.deltas = FALSE, 
+                     use.deltas = NULL){
+
   if(is.null(use.deltas)){
+    qn <- min(length(obs), length(sim))
+    qx <- quantile(sim, seq(0, 1, length.out = qn), type = 8)
     qy <- quantile(obs, seq(0, 1, length.out = qn), type = 8)
     q_deltas <- qx - qy
   } else {
+    qx <- quantile(sim, seq(0, 1, length.out = length(use.deltas)), 
+                   type = 8)
     q_deltas = use.deltas
   }
   
@@ -135,10 +133,11 @@ ggECDF_compare <- function(obs, sim, sim_adj, p_title = " "){
   leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
   mylegend <- tmp$grobs[[leg]]
  
-  grid.arrange(arrangeGrob(p1 + theme(legend.position="none"),
-                           p2 + theme(legend.position="none"), 
-                           nrow=1),
-               mylegend, nrow=2,heights=c(10, 1))
+  p <- arrangeGrob(arrangeGrob(p1 + theme(legend.position = "none"),
+                           p2 + theme(legend.position = "none"), 
+                           nrow = 1),
+               mylegend, nrow=2, heights = c(10, 1))
+  return(p)
 }
 
 #------------------------------------------------------------------------------
