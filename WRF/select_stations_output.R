@@ -27,14 +27,11 @@
 library(ncdf4) 
 library(dplyr)
 library(lubridate)
-library(ggplot2)
 
 workdir <- getwd()
 datadir <- file.path(workdir, "data")
 # local WRF data for station-based WRF output
 era_raw_dir <- file.path(datadir, "ERA_stations_raw")
-cm3_raw_dir <- file.path(datadir, "CM3_stations_raw")
-ccsm4_raw_dir <- file.path(datadir, "CCSM4_stations_raw")
 # WRF output dir (external drive)
 wrf_output_dir <- "F:/Wind_Climatology/data/WRF_output"
 
@@ -187,6 +184,7 @@ library(dplyr)
 library(lubridate)
 library(progress)
 {
+  cm3_raw_dir <- file.path(datadir, "CM3_stations_raw")
   # setup years for iteration 
   # "historical" period
   h_start <- ymd("1980-01-01")
@@ -240,7 +238,7 @@ library(progress)
       xc <- stid_wrf_ind$wrf_j[stid_wrf_ind$stid == stids[j]]
       # u10 data
       u10_stid <- ncvar_get(u10, "u10", 
-                            start = c(xc, yx, 1),
+                            start = c(xc, yc, 1),
                             count = c(1, 1, -1))
       # v10 data
       v10_stid <- ncvar_get(v10, "v10", 
@@ -294,7 +292,7 @@ library(progress)
                                 paste0(stids[j], "_cm3f_raw.Rds"))
       station <- readRDS(station_path)
       # extract data
-      yx <- stid_wrf_ind$wrf_i[stid_wrf_ind$stid == stids[j]]
+      yc <- stid_wrf_ind$wrf_i[stid_wrf_ind$stid == stids[j]]
       xc <- stid_wrf_ind$wrf_j[stid_wrf_ind$stid == stids[j]]
       # u10 data
       u10_stid <- ncvar_get(u10, "u10", 
@@ -317,6 +315,7 @@ library(progress)
     # close connections - probably should? overwritten anyway..
     nc_close(u10)
     nc_close(v10)
+    
     pb$tick()
   }
 }
@@ -329,6 +328,7 @@ library(dplyr)
 library(lubridate)
 library(progress)
 {
+  ccsm4_raw_dir <- file.path(datadir, "CCSM4_stations_raw")
   # setup years for iteration 
   # "historical" period
   h_start <- ymd("1980-01-01")

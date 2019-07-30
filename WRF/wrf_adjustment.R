@@ -91,7 +91,7 @@ pb <- progress_bar$new(total = length(cm3h_paths),
                        format = " Quantile Mapping CM3 data [:bar] :percent")
 for(i in seq_along(cm3h_paths)){
   cm3 <- readRDS(cm3h_paths[i]) %>%
-    filter(ts >= start)
+    filter(ts >= h_start)
   stid <- cm3$stid[1]
   era_path <- file.path(era_adj_dir, paste0(stid, "_era_adj.Rds"))
   # use years from historical CM3 period
@@ -143,7 +143,7 @@ pb <- progress_bar$new(total = length(ccsm4h_paths),
                        format = " Quantile Mapping CCSM4 data [:bar] :percent")
 for(i in seq_along(ccsm4h_paths)){
   ccsm4 <- readRDS(ccsm4h_paths[i]) %>%
-    filter(ts >= start)
+    filter(ts >= h_start)
   stid <- ccsm4$stid[1]
   era_path <- file.path(era_adj_dir, paste0(stid, "_era_adj.Rds"))
   # use years from historical ccsm4 period
@@ -182,15 +182,15 @@ for(i in seq_along(ccsm4h_paths)){
 #------------------------------------------------------------------------------
 
 #-- Save CSVs -----------------------------------------------------------------
-# CM3 dirs
+# ERA dirs
 era_adj_dir <- file.path(datadir, "era_stations_adj")
 era_adj_csv_dir <- file.path(datadir, "era_stations_adj_csv")
 # era paths
-era_paths <- list.files(era_adj_dir, full.names = TRUE)
+era_adj_paths <- list.files(era_adj_dir, full.names = TRUE)
 
-pb <- progress_bar$new(total = length(era_paths),
+pb <- progress_bar$new(total = length(era_adj_paths),
                        format = " Creating ERA CSVs [:bar] :percent")
-for(i in seq_along(era_paths)){
+for(i in seq_along(era_adj_paths)){
   # read, filter to target dates, save CSVs
   era <- readRDS(era_paths[i]) %>%
     filter(ts < ymd("2015-01-02"))
@@ -210,11 +210,11 @@ cm3f_adj_paths <- list.files(cm3_adj_dir, pattern = "cm3f", full.names = TRUE)
 # Loop through CM3 paths and save future/hist CSVs
 h_start <- ymd_hms("1980-01-01 00:00:00")
 h_end <- ymd_hms("2015-01-01 23:59:59")
-f_start <- ymd_hms("2066-01-01 00:00:00")
+f_start <- ymd_hms("2065-01-01 00:00:00")
 f_end <- ymd_hms("2100-01-01 23:59:59")
 pb <- progress_bar$new(total = length(cm3h_adj_paths),
                        format = " Creating CSVs [:bar] :percent")
-for(i in seq_along(cm3h_paths)){
+for(i in seq_along(cm3h_adj_paths)){
   # read, filter to target dates, save CSVs
   cm3h <- readRDS(cm3h_adj_paths[i])
   cm3f <- readRDS(cm3f_adj_paths[i])
@@ -238,22 +238,22 @@ ccsm4f_adj_paths <- list.files(ccsm4_adj_dir, pattern = "ccsm4f", full.names = T
 # Loop through CCSM4 paths and save future/hist CSVs
 h_start <- ymd_hms("1980-01-01 00:00:00")
 h_end <- ymd_hms("2015-01-01 23:59:59")
-f_start <- ymd_hms("2066-01-01 00:00:00")
+f_start <- ymd_hms("2065-01-01 00:00:00")
 f_end <- ymd_hms("2100-01-01 23:59:59")
-pb <- progress_bar$new(total = length(cm3h_adj_paths),
+pb <- progress_bar$new(total = length(ccsm4h_adj_paths),
                        format = " Creating CSVs [:bar] :percent")
-for(i in seq_along(cm3h_paths)){
+for(i in seq_along(ccsm4h_adj_paths)){
   # read, filter to target dates, save CSVs
-  cm3h <- readRDS(cm3h_adj_paths[i])
-  cm3f <- readRDS(cm3f_adj_paths[i])
-  cm3 <- bind_rows(cm3h, cm3f)
-  cm3h <- cm3 %>% filter(ts >= h_start & ts <= h_end)
-  cm3f <- cm3 %>% filter(ts >= f_start & ts <= f_end)
-  stid <- cm3f$stid[1]
-  cm3h_path <- file.path(cm3_adj_csv_dir, paste0(stid, "_cm3h_adj.csv"))
-  cm3f_path <- file.path(cm3_adj_csv_dir, paste0(stid, "_cm3f_adj.csv"))
-  write.csv(cm3h, cm3h_path, row.names = FALSE)
-  write.csv(cm3f, cm3f_path, row.names = FALSE)
+  ccsm4h <- readRDS(ccsm4h_adj_paths[i])
+  ccsm4f <- readRDS(ccsm4f_adj_paths[i])
+  ccsm4 <- bind_rows(ccsm4h, ccsm4f)
+  ccsm4h <- ccsm4 %>% filter(ts >= h_start & ts <= h_end)
+  ccsm4f <- ccsm4 %>% filter(ts >= f_start & ts <= f_end)
+  stid <- ccsm4f$stid[1]
+  ccsm4h_path <- file.path(ccsm4_adj_csv_dir, paste0(stid, "_ccsm4h_adj.csv"))
+  ccsm4f_path <- file.path(ccsm4_adj_csv_dir, paste0(stid, "_ccsm4f_adj.csv"))
+  write.csv(ccsm4h, ccsm4h_path, row.names = FALSE)
+  write.csv(ccsm4f, ccsm4f_path, row.names = FALSE)
   pb$tick()
 }
 
@@ -263,7 +263,7 @@ for(i in seq_along(cm3h_paths)){
 # plot and save ECDF comparisons
 # ERA-Interim
 era_adj_paths <- list.files(era_adj_dir, full.names = TRUE)
-pb <- progress_bar$new(total = length(era_raw_paths),
+pb <- progress_bar$new(total = length(era_adj_paths),
                        format = " Plotting ECDFs from ERA Adjustment [:bar] :percent")
 for(i in seq_along(era_adj_paths)){
   era <- readRDS(era_adj_paths[i])
@@ -286,7 +286,7 @@ for(i in seq_along(era_adj_paths)){
   pb$tick()
 }
 
-# GFDL CM3
+# GFDL CM3 i = 27
 cm3h_adj_paths <- list.files(cm3_adj_dir, pattern = "cm3h", full.names = TRUE)
 cm3f_adj_paths <- list.files(cm3_adj_dir, pattern = "cm3f", full.names = TRUE)
 pb <- progress_bar$new(total = length(cm3h_adj_paths),

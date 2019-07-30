@@ -1,0 +1,16 @@
+---
+title: "GFDL CM3 Quantile Mapping Assessment"
+output: pdf_document
+---
+
+```{r setup, echo = FALSE, out.height = "25%", warning = FALSE, message = FALSE}
+knitr::opts_knit$set(root.dir = "../..")
+# directories
+workdir <- knitr::opts_knit$get("root.dir")
+datadir <- file.path(workdir, "data")
+figdir <- file.path(workdir, "figures")
+ecdf_dir <- file.path(figdir, "cm3_adj_ecdfs")
+ecdf_paths <- list.files(ecdf_dir, full.names = TRUE)
+
+knitr::include_graphics(ecdf_paths)
+```

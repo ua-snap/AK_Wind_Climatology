@@ -1,5 +1,0 @@
----
-title: "ERA-Interim Quantile Mapping Assessment"
-output: pdf_document
----
-

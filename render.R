@@ -11,7 +11,9 @@
 library(rmarkdown)
 
 workdir <- getwd()
-code_dir <- file.path(workdir, "code/ASOS")
+code_dir <- file.path(workdir, "code")
+asos_dir <- file.path(code_dir, "ASOS")
+wrf_dir <- file.path(code_dir, "WRF")
 doc_dir <- file.path(workdir, "documents")
 
 #------------------------------------------------------------------------------
@@ -22,13 +24,22 @@ doc_dir <- file.path(workdir, "documents")
 render(rmd_path, output_dir = doc_dir)}
 
 # ASOS data quantile mapping ECDF plots
-# qmap_adj_ecdf_plots.Rmd
-{rmd_path <- file.path(code_dir, "qmap_adj_ecdf_plots.Rmd")
+# asos_ecdf_plots.Rmd
+{rmd_path <- file.path(asos_dir, "asos_ecdf_plots.Rmd")
   render(rmd_path, output_dir = doc_dir)}
 
 # ERA-Interim quantile mapping ECDF plots
+# era_ecdf_plots.Rmd
+{rmd_path <- file.path(wrf_dir, "era_ecdf_plots.Rmd")
+  render(rmd_path, output_dir = doc_dir)}
 
 # CM3 quantile mapping ECDF plots
+# cm3_ecdf_plots.Rmd
+{rmd_path <- file.path(wrf_dir, "cm3_ecdf_plots.Rmd")
+  render(rmd_path, output_dir = doc_dir)}
 
+# High Wind Event Sample Comparison - All Sources
+{rmd_path <- file.path(code_dir, "asos_wrf_compare_events.Rmd")
+  render(rmd_path, output_dir = doc_dir)}
 
 #------------------------------------------------------------------------------
