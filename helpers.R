@@ -2,6 +2,9 @@
 #
 # Helper functions that I find myself coding repeatedly
 #
+# t_test_stid
+#   compute t-tests for stations by stid using monthly averaged data
+#
 # uv2wdws
 #   convert wind velocity components to direction (deg) and speed (mph)
 #
@@ -12,6 +15,34 @@
 #   use ggplot2 to plot ECDFs before and after bias correction
 
 
+
+#-- t_test_stid ---------------------------------------------------------------
+# function to run t tests by month between climatology periods
+t_test_stid <- function(stidf, monthly_df){
+  
+  temp <- lapply(month.abb, function(mo_abb, df){
+    x <- df %>% filter(mo == mo_abb & clim == "1980-2015") %>%
+      ungroup() %>% select(avg_sped_adj) %>% unlist() %>% unname()
+    y <- df %>% filter(mo == mo_abb & clim == "2065-2100") %>%
+      ungroup() %>% select(avg_sped_adj) %>% unlist() %>% unname()
+    mod <- t.test(x, y)
+    ret.vec <- c(round(mod$p.value, 3), mod$estimate)
+    names(ret.vec)[1] <- "p-val"
+    return(ret.vec)
+  }, df = monthly_df %>% filter(stid == stidf))
+  
+  temp <- data.frame(matrix(unlist(temp), nrow = 12, byrow = TRUE))
+  temp <- temp %>%
+    rename(p_val = X1, mean_x = X2, mean_y = X3) %>%
+    mutate(sig = if_else(p_val <= 0.05, "Signif", "Not Signif"),
+           stid = stidf)
+  temp$mo <- factor(month.abb, levels = month.abb)
+  levels(temp$sig) <- c("Signif", "Not Signif")
+  
+  temp
+}
+
+#------------------------------------------------------------------------------
 
 #-- uv2wdws -------------------------------------------------------------------
 # function to apply to convert m/s components to mph and directions
