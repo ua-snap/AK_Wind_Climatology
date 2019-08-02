@@ -1,0 +1,46 @@
+---
+title: "Model Climatology Quantile/Mean Differences"
+output: pdf_document
+---
+
+```{r setup, echo = FALSE}
+library(knitr)
+
+knitr::opts_chunk$set(root.dir = "../..")
+# directories
+datadir <- file.path(knitr::opts_chunk$get("root.dir"), "data")
+
+cm3_jan_df <- readRDS(file.path(datadir, "model_climatology_comparison",
+                                "cm3_jan_df.Rds"))
+cm3_jul_df <- readRDS(file.path(datadir, "model_climatology_comparison",
+                                "cm3_jul_df.Rds"))
+
+ccsm4_jan_df <- readRDS(file.path(datadir, "model_climatology_comparison",
+                                  "ccsm4_jan_df.Rds"))
+ccsm4_jul_df <- readRDS(file.path(datadir, "model_climatology_comparison",
+                                  "ccsm4_jul_df.Rds"))
+```
+
+##CM3 January
+There is a correlation between the following quantile and mean differences of `r round(cor(cm3_jan_df$q99.00_diff, cm3_jan_df$mean_diff), 2)` for the 99.00% quantiles, and `r round(cor(cm3_jan_df$q99.90_diff, cm3_jan_df$mean_diff), 2)` for the 99.90% quantiles. 
+```{r cm3_jan, echo = FALSE}
+kable(cm3_jan_df)
+```
+
+##CM3 July
+There is a correlation between the following quantile and mean differences of `r round(cor(cm3_jul_df$q99.00_diff, cm3_jul_df$mean_diff), 2)` for the 99.00% quantiles, and `r round(cor(cm3_jul_df$q99.90_diff, cm3_jul_df$mean_diff), 2)` for the 99.90% quantiles. 
+```{r cm3_july, echo = FALSE}
+kable(cm3_jul_df)
+```
+
+##CCSM4 January
+There is a correlation between the following quantile and mean differences of `r round(cor(ccsm4_jan_df$q99.00_diff, ccsm4_jan_df$mean_diff), 2)` for the 99.00% quantiles, and `r round(cor(ccsm4_jan_df$q99.90_diff, ccsm4_jan_df$mean_diff), 2)` for the 99.90% quantiles. 
+```{r ccsm4_jan, echo = FALSE}
+kable(ccsm4_jan_df)
+```
+
+##CCSM4 July
+There is a correlation between the following quantile and mean differences of `r round(cor(ccsm4_jul_df$q99.00_diff, ccsm4_jul_df$mean_diff), 2)` for the 99.00% quantiles, and `r round(cor(ccsm4_jul_df$q99.90_diff, ccsm4_jul_df$mean_diff), 2)` for the 99.90% quantiles. 
+```{r ccsm4_july, echo = FALSE}
+kable(ccsm4_jul_df)
+```

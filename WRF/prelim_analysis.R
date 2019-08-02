@@ -64,7 +64,7 @@ ccsm4_monthly <- bind_rows(ccsm4h_monthly, ccsm4f_monthly) %>%
 #-- All Sites T-Test ----------------------------------------------------------
 stations <- readRDS(file.path(datadir, "AK_ASOS_select_stations.Rds"))
 stids <- stations$stid
-stid_names <- select_stations %>% select(stid, station_name)
+stid_names <- stations %>% select(stid, station_name)
 
 # CM3
 cm3_ttest <- lapply(stids, t_test_stid, cm3_monthly) %>%
@@ -129,6 +129,124 @@ ggsave(plot_path, p, device = "png", height = 12, width = 7)
 
 #------------------------------------------------------------------------------
 
+#-- Mean/Quantile Check -------------------------------------------------------
+# Generate list of stations with difference in monthly means, and difference in 
+#   99.00% and 99.90% quantiles between historical and future
+# Using the same number of quantiles used in quantile mapping
+
+# Need to determine # of quantiles used
+# Number of quantiles used is the minimum of era and cm3h, which is length of 
+#   cm3h
+cm3 <- readRDS(file.path(datadir, "CM3_stations_adj/PAAQ_cm3h_adj.Rds"))
+qn <- nrow(cm3)/12
+
+# Need to read the historical/future data for each station, extract and 
+#   compare quantiles
+stations <- readRDS(file.path(datadir, "AK_ASOS_select_stations.Rds"))
+stids <- stations$stid
+
+qx_diffs <- function(stid, qn, mo, mod = 1){
+  mod_l <- c("cm3", "ccsm4")[mod]
+  mod <- c("CM3", "CCSM4")[mod]
+  cm3h <- readRDS(file.path(datadir, paste0(mod, "_stations_adj"), 
+                            paste0(stid, "_", mod_l, "h_adj.Rds"))) %>%
+    filter(month(ts) == mo)
+  cm3f <- readRDS(file.path(datadir, paste0(mod, "_stations_adj"), 
+                            paste0(stid, "_", mod_l, "f_adj.Rds"))) %>%
+    filter(month(ts) == mo)
+  qxh <- quantile(cm3h$sped, seq(0, 1, length.out = qn), type = 8)
+  qxf <- quantile(cm3f$sped, seq(0, 1, length.out = qn), type = 8)
+  temp <- round(as.numeric(gsub("%", "", names(qxh))), 2)
+  i <- c(which(temp == 99.00)[1], which(temp == 99.90)[1])
+  #i2 <- which(temp == 99.90)[1]
+  #i1 <- which(temp == 99.99)[ceiling(length(which(temp == 99.99))/2)]
+  #i2 <- which(temp == 99.999)[ceiling(length(which(temp == 99.999))/2)]
+  qd <- qxf[i] - qxh[i] 
+  return(as.numeric(qd))
+}
+
+# CM3 January
+cm3_jan_qx_diffs <- sapply(stids, qx_diffs, qn, mo = 1)
+
+cm3_jan_qx_df <- data.frame(stid = colnames(cm3_jan_qx_diffs),
+                            q99.00_diff = as.numeric(cm3_jan_qx_diffs[1, ]),
+                            q99.90_diff = as.numeric(cm3_jan_qx_diffs[2, ]),
+                            stringsAsFactors = FALSE)
+jan_df <- cm3_ttest %>%
+  filter(mo == "Jan") %>%
+  mutate(mean_diff = mean_y - mean_x) %>%
+  rename(signif = sig) %>%
+  left_join(cm3_jan_qx_df, by = "stid") %>%
+  left_join(stations, by = "stid") %>%
+  select(station_name, q99.00_diff,  q99.90_diff, mean_diff, signif) %>%
+  mutate(q99.00_diff = round(q99.00_diff, 2),
+         q99.90_diff = round(q99.90_diff, 2), 
+         mean_diff = round(mean_diff, 2))
+saveRDS(jan_df, file.path(datadir, "model_climatology_comparison",
+                          "cm3_jan_df.Rds"))
+
+# July
+cm3_jul_qx_diffs <- sapply(stids, qx_diffs, qn, mo = 7)
+
+cm3_jul_qx_df <- data.frame(stid = colnames(cm3_jul_qx_diffs),
+                            q99.00_diff = as.numeric(cm3_jul_qx_diffs[1, ]),
+                            q99.90_diff = as.numeric(cm3_jul_qx_diffs[2, ]),
+                            stringsAsFactors = FALSE)
+jul_df <- cm3_ttest %>%
+  filter(mo == "Jul") %>%
+  mutate(mean_diff = mean_y - mean_x) %>%
+  rename(signif = sig) %>%
+  left_join(cm3_jul_qx_df, by = "stid") %>%
+  left_join(stations, by = "stid") %>%
+  select(station_name, q99.00_diff,  q99.90_diff, mean_diff, signif) %>%
+  mutate(q99.00_diff = round(q99.00_diff, 2),
+         q99.90_diff = round(q99.90_diff, 2), 
+         mean_diff = round(mean_diff, 2))
+saveRDS(jul_df, file.path(datadir, "model_climatology_comparison",
+                          "cm3_jul_df.Rds"))
+
+# CCSM4 January
+ccsm4_jan_qx_diffs <- sapply(stids, qx_diffs, qn, mo = 1, mod = 2)
+
+ccsm4_jan_qx_df <- data.frame(stid = colnames(ccsm4_jan_qx_diffs),
+                            q99.00_diff = as.numeric(ccsm4_jan_qx_diffs[1, ]),
+                            q99.90_diff = as.numeric(ccsm4_jan_qx_diffs[2, ]),
+                            stringsAsFactors = FALSE)
+jan_df <- ccsm4_ttest %>%
+  filter(mo == "Jan") %>%
+  mutate(mean_diff = mean_y - mean_x) %>%
+  rename(signif = sig) %>%
+  left_join(ccsm4_jan_qx_df, by = "stid") %>%
+  left_join(stations, by = "stid") %>%
+  select(station_name, q99.00_diff,  q99.90_diff, mean_diff, signif) %>%
+  mutate(q99.00_diff = round(q99.00_diff, 2),
+         q99.90_diff = round(q99.90_diff, 2), 
+         mean_diff = round(mean_diff, 2))
+saveRDS(jan_df, file.path(datadir, "model_climatology_comparison",
+                          "ccsm4_jan_df.Rds"))
+
+# CCSM4 July
+ccsm4_jul_qx_diffs <- sapply(stids, qx_diffs, qn, mo = 7, mod = 2)
+
+ccsm4_jul_qx_df <- data.frame(stid = colnames(ccsm4_jul_qx_diffs),
+                            q99.00_diff = as.numeric(ccsm4_jul_qx_diffs[1, ]),
+                            q99.90_diff = as.numeric(ccsm4_jul_qx_diffs[2, ]),
+                            stringsAsFactors = FALSE)
+jul_df <- ccsm4_ttest %>%
+  filter(mo == "Jul") %>%
+  mutate(mean_diff = mean_y - mean_x) %>%
+  rename(signif = sig) %>%
+  left_join(ccsm4_jul_qx_df, by = "stid") %>%
+  left_join(stations, by = "stid") %>%
+  select(station_name, q99.00_diff,  q99.90_diff, mean_diff, signif) %>%
+  mutate(q99.00_diff = round(q99.00_diff, 2),
+         q99.90_diff = round(q99.90_diff, 2), 
+         mean_diff = round(mean_diff, 2))
+saveRDS(jul_df, file.path(datadir, "model_climatology_comparison",
+                          "ccsm4_jul_df.Rds"))
+
+#------------------------------------------------------------------------------
+
 #-- T-Test Signifiance Barplots -----------------------------------------------
 cm3_sig_tab <- cm3_sig %>%
   group_by(mo) %>%
@@ -182,21 +300,29 @@ coords <- cm3_sig %>%
   st_as_sf(coords = c("lon", "lat"), crs = 4326) %>%
   st_transform(26935)
 
-# plot
-p <- ggplot(data = ak_sf) + geom_sf(fill = "cornsilk") +
-  ggtitle("Significant Differences in July Climatologies, GFDL CM3", 
-          subtitle = "Historical (1980-2015) vs Future (2065-2100)") +
-  xlab("Lng") + ylab("Lat") +
-  geom_sf(data = coords, aes(color = sig), show.legend = "point") +
-  scale_color_manual(name = "Significance",
-                     values = c("black", "dodgerblue", "firebrick"),
-                     labels = c("Not Significant", "Future Signif. Lower", 
-                                "Future Signif. Higher")) + 
-  theme_bw()
+# plot function
+signif_map <- function(coords, ak){
+  p <- ggplot(data = ak) + geom_sf(fill = "cornsilk") +
+    ggtitle("Significant Differences in July Climatologies, GFDL CM3", 
+            subtitle = "Historical (1980-2015) vs Future (2065-2100)") +
+    xlab("Lng") + ylab("Lat") +
+    geom_sf(data = coords, aes(color = sig, shape = sig),
+            show.legend = "point") +
+    scale_shape_manual(values = c(21, 16, 16), guide = FALSE) +
+    scale_color_manual(name = "Significance",
+                       values = c("black", "dodgerblue", "red"),
+                       labels = c("Not Significant", "Future Signif. Lower", 
+                                  "Future Signif. Higher"),
+                       guide = guide_legend(override.aes = 
+                                              list(shape = c(21, 16, 16)))) + 
+    theme_bw()
+  return(p)
+}
+
+p <- signif_map(coords, ak_sf)
 plot_path <- file.path(figdir, "climatology_comparison",
                        "cm3_signif_jul_locations.png")
 ggsave(plot_path, p, device = "png", scale = 1)
-
 
 # January
 coords <- cm3_sig %>% 
@@ -207,16 +333,7 @@ coords <- cm3_sig %>%
   st_transform(26935)
 
 # plot
-p <- ggplot(data = ak_sf) + geom_sf(fill = "cornsilk") +
-  ggtitle("Significant Differences in January Climatologies, GFDL CM3", 
-          subtitle = "Historical (1980-2015) vs Future (2065-2100)") +
-  xlab("Lng") + ylab("Lat") +
-  geom_sf(data = coords, aes(color = sig), show.legend = "point") +
-  scale_color_manual(name = "Significance",
-                     values = c("black", "dodgerblue", "firebrick"),
-                     labels = c("Not Significant", "Future Signif. Lower", 
-                                "Future Signif. Higher")) + 
-  theme_bw()
+p <- signif_map(coords, ak_sf)
 plot_path <- file.path(figdir, "climatology_comparison",
                        "cm3_signif_jan_locations.png")
 ggsave(plot_path, p, device = "png", scale = 1)

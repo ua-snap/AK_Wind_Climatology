@@ -42,4 +42,8 @@ render(rmd_path, output_dir = doc_dir)}
 {rmd_path <- file.path(code_dir, "asos_wrf_compare_events.Rmd")
   render(rmd_path, output_dir = doc_dir)}
 
+# High Wind Event Sample Comparison - All Sources
+{rmd_path <- file.path(wrf_dir, "model_clim_mean_quantile_differences.Rmd")
+  render(rmd_path, output_dir = doc_dir)}
+
 #------------------------------------------------------------------------------

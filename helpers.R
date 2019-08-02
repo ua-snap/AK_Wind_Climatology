@@ -114,6 +114,50 @@ qMapWind <- function(obs = NULL, sim,
   } else {return(sim_adj)}
 }
 
+
+# Custom quantile mapping function
+qMapWind <- function(obs = NULL, sim, 
+                     ret.deltas = FALSE, 
+                     use.deltas = NULL){
+  
+  if(is.null(use.deltas)){
+    qn <- min(length(obs), length(sim))
+    qx <- quantile(sim, seq(0, 1, length.out = qn), type = 8)
+    qy <- quantile(obs, seq(0, 1, length.out = qn), type = 8)
+    q_deltas <- qx - qy
+  } else {
+    qx <- quantile(sim, seq(0, 1, length.out = length(use.deltas)), 
+                   type = 8)
+    q_deltas = use.deltas
+  }
+  
+  # bin "sim" observations into quantiles. Will use these indices to 
+  #   index deltas vector for adjustment
+  qi <- .bincode(sim, qx, include.lowest = TRUE)
+  
+  df <- data.frame(lower=sort(unique(qi)), freq=as.integer(table(qi)))
+  df$upper <- c(df$lower[-1] - df$lower[-nrow(df)], 1) + df$lower - 1
+  # want to omit this adjustment if the first quantile is also the first
+  #   duplicate
+  ub <- df$lower != 1
+  df$upper[ub] <- df$upper[ub] - as.numeric(df$upper[ub] > df$lower[ub] & 
+                                              qx[df$upper[ub]] < qx[df$upper[ub] + 1])
+  
+  recycled <- apply(df, 1, function(x) {
+    out <- rep(x["lower"]:x["upper"], length.out=x["freq"])
+    
+    return(out)
+  })
+  
+  qi <- unlist(recycled)[order(order(qi))]
+  
+  sim_adj <- sim - as.numeric(q_deltas)[qi]
+  # return adjusted
+  if(ret.deltas == TRUE){
+    return(list(deltas = q_deltas, sim_adj = sim_adj))
+  } else {return(sim_adj)}
+}
+
 #------------------------------------------------------------------------------
 
 #-- ggECDF_compare ------------------------------------------------------------
