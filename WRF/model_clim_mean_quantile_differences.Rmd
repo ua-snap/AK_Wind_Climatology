@@ -4,6 +4,11 @@ output: pdf_document
 ---
 
 ```{r setup, echo = FALSE}
+# Script Summary
+#   Compare tables of quantile differences for months of January and July for
+#   the 99.0% and 99.90% with the means esitmate from the T-Tests between
+#   historical and future periods, for both models.
+
 library(knitr)
 
 knitr::opts_chunk$set(root.dir = "../..")

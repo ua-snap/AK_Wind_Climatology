@@ -7,6 +7,8 @@
 #   /figures/climatology_comparison/ccsm4_ttest_heatmap.png
 #   /figures/climatology_comparison/cm3_boxplots_wind_event_subset.png
 #   /figures/climatology_comparison/ccsm4_boxplots_wind_event_subset.png
+#   /data/climatology_comparison/cm3_"jan/jul"_df.Rds
+#   /data/climatology_comparison/ccsm4_"jan/jul"_df.Rds
 
 
 
@@ -158,9 +160,7 @@ qx_diffs <- function(stid, qn, mo, mod = 1){
   qxf <- quantile(cm3f$sped, seq(0, 1, length.out = qn), type = 8)
   temp <- round(as.numeric(gsub("%", "", names(qxh))), 2)
   i <- c(which(temp == 99.00)[1], which(temp == 99.90)[1])
-  #i2 <- which(temp == 99.90)[1]
-  #i1 <- which(temp == 99.99)[ceiling(length(which(temp == 99.99))/2)]
-  #i2 <- which(temp == 99.999)[ceiling(length(which(temp == 99.999))/2)]
+ 
   qd <- qxf[i] - qxh[i] 
   return(as.numeric(qd))
 }

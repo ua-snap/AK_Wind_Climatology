@@ -1,6 +1,6 @@
 # Script summary
 #
-# Create figure of 
+# Create figure to check alignment of WRF grid with station locations
 
 
 
@@ -84,5 +84,4 @@ p <- ggplot(data = ak_sf) + geom_sf(fill = "cornsilk") +
   coord_sf(xlim = c(-1000000, 0), 
          ylim = c(-2891763, -2000000)) 
   
-  
-
+#------------------------------------------------------------------------------

@@ -1,0 +1,54 @@
+---
+title: "ASOS Data Discontinuity Detection"
+output: 
+  pdf_document:
+    latex_engine: xelatex
+
+---
+```{r setup, echo = FALSE}
+# Script Summary
+#   Make table of results from detection of changepoints in ASOS data
+
+library(knitr)
+library(dplyr)
+
+knitr::opts_chunk$set(root.dir = "../..")
+# directories
+datadir <- file.path(knitr::opts_chunk$get("root.dir"), "data")
+
+stations <- readRDS(file.path(datadir, "AK_ASOS_select_stations.Rds"))
+cpts_df <- readRDS(file.path(datadir, "AK_ASOS_stations_adj", 
+                             "cpts_df.Rds")) %>%
+  left_join(stations, by = "stid") %>%
+  select(stid, station_name, cp1, cp2, m1, m2, m3, to_calm, from_calm, cpts)
+
+```
+
+### Single Discontinuity
+The following ASOS stations had 1 statistically significant discontinuity
+
+```{r cp1_table, echo = FALSE}
+cpts_df1 <- cpts_df %>% 
+  filter(cpts == 1) %>%
+  mutate(d_mean = round(m2 - m1, 2)) %>%
+  select(station_name, cp1, d_mean, to_calm, from_calm) 
+Delta <- intToUtf8(916)
+labs <- c("Station", "Date", paste0(Delta, " Mean"), "To Calm", "From Calm")
+
+kable(cpts_df1, col.names = labs)
+```
+
+### Double Discontinuity
+The following ASOS stations had 2 statistically significant discontinuities
+
+```{r cp2_table, echo = FALSE}
+cpts_df2 <- cpts_df %>% 
+  filter(cpts == 2) %>%
+  mutate(d_mean1 = round(m3 - m1, 2),
+         d_mean2 = round(m3 - m2, 2)) %>%
+  select(station_name, cp1, d_mean1, cp2, d_mean2, to_calm, from_calm) 
+
+labs <- c("Station", "Date 1", paste0(Delta, " Mean 1"), "Date 2", paste0(Delta, " Mean 2"), "To Calm", "From Calm")
+
+kable(cpts_df2, col.names = labs)
+```

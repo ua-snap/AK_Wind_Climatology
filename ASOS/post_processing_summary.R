@@ -1,6 +1,5 @@
 # Script summary
-#
-# Final quality check of post-correction AK ASOS data
+#   Final quality check of post-correction AK ASOS data
 #
 # Extreme adjustments
 #

@@ -1,7 +1,6 @@
 # Script summary
-#
-# Summarize Speeds By Day
-#   including number of valid observations each day
+# 
+# Summarize wind speeds by day, using quality-controlled ASOS data
 #
 # Output files:
 #   /data/AK_ASOS_daily_all_stations_19700101_to_20190528.Rds
