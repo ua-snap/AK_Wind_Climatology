@@ -26,10 +26,10 @@ ccsm4 <- readRDS(file.path(ccsm4_adj_dir, "PAOM_ccsm4h_adj.Rds")) %>%
   bind_rows(readRDS(file.path(ccsm4_adj_dir, "PAOM_ccsm4f_adj.Rds")))
 
 t_start <- ymd_hms(c("1988-02-03 05:00:00",
-                   "1998-04-09 22:00:00",
-                   "2006-02-18 21:00:00",
-                   "2011-11-08 21:00:00",
-                   "2014-01-17 13:00:00"))
+                     "1998-04-09 22:00:00",
+                     "2006-02-18 21:00:00",
+                     "2011-11-08 21:00:00",
+                     "2014-01-17 13:00:00"))
 
 for(i in seq_along(t_start)){
   start <- t_start[i] - hours(48)
@@ -75,10 +75,10 @@ for(i in seq_along(t_start)){
 ```{r barrow, echo = FALSE, fig.height = 3, fig.width = 8, warning = FALSE, message = FALSE}
 
 t_start <- ymd_hms(c("1989-02-25 13:00:00",
-                   "1994-02-01 05:00:00",
-                   "2000-11-10 06:00:00",
-                   "2011-11-08 21:00:00",
-                   "2006-10-08 14:00:00"))
+                     "1994-02-01 05:00:00",
+                     "2000-11-10 06:00:00",
+                     "2011-11-08 21:00:00",
+                     "2006-10-08 14:00:00"))
 
 era <- readRDS(file.path(era_adj_dir, "PABR_era_adj.Rds"))
 asos <- readRDS(file.path(asos_adj_dir, "PABR.Rds"))
@@ -125,6 +125,341 @@ for(i in seq_along(t_start)){
 }
 
 ```
+
+## Sitka
+```{r Sitka, echo = FALSE, fig.height = 3, fig.width = 8, warning = FALSE, message = FALSE}
+
+t_start <- ymd_hms(c("1980-11-15 19:00:00",
+                     "1988-11-30 00:00:00",
+                     "1999-11-01 03:00:00",
+                     "2006-12-29 03:00:00",
+                     "2011-11-12 16:00:00"))
+
+era <- readRDS(file.path(era_adj_dir, "PASI_era_adj.Rds"))
+asos <- readRDS(file.path(asos_adj_dir, "PASI.Rds"))
+cm3 <- readRDS(file.path(cm3_adj_dir, "PASI_cm3h_adj.Rds")) %>%
+  bind_rows(readRDS(file.path(cm3_adj_dir, "PASI_cm3f_adj.Rds")))
+ccsm4 <- readRDS(file.path(ccsm4_adj_dir, "PASI_ccsm4h_adj.Rds")) %>%
+  bind_rows(readRDS(file.path(ccsm4_adj_dir, "PASI_ccsm4f_adj.Rds")))
+
+for(i in seq_along(t_start)){
+  start <- t_start[i] - hours(48)
+  end <- start + hours(192)
+  
+  asos_event <- asos %>% 
+    filter(t_round >= start & t_round <= end) %>%
+    select(t_round, sped_adj) %>% 
+    rename(ts = t_round, ASOS = sped_adj)
+  
+  era_event <- era %>%
+    filter(ts >= start & ts <= end) %>%
+    select(ts, sped_adj) %>% 
+    rename(ERA = sped_adj)
+  
+  cm3_event <- cm3 %>%
+    filter(ts >= start & ts <= end) %>%
+    select(ts, sped_adj) %>% 
+    rename(CM3 = sped_adj)
+  
+  event_df <- ccsm4 %>% 
+    filter(ts >= start & ts <= end) %>%
+    select(ts, sped_adj) %>%
+    rename(CCSM4 = sped_adj) %>%
+    left_join(asos_event, "ts") %>%
+    left_join(era_event, "ts") %>%
+    left_join(cm3_event, "ts") %>%
+    gather("Source", "sped", -ts)
+    
+  p <- ggplot(event_df, aes(ts, sped, color = Source)) + 
+    geom_line(size = 1) +
+    xlab("") + ylab("Speed (mph)") + 
+    ggtitle("PASI", subtitle = t_start[i])
+  
+  print(p)
+  
+}
+
+```
+
+
+## Juneau
+```{r Juneau, echo = FALSE, fig.height = 3, fig.width = 8, warning = FALSE, message = FALSE}
+
+t_start <- ymd_hms(c("1992-03-10 02:00:00",
+                     "1997-04-01 15:00:00",
+                     "2000-01-27 06:00:00",
+                     "2003-12-22 03:00:00",
+                     "2009-11-13 23:00:00"))
+
+era <- readRDS(file.path(era_adj_dir, "PAJN_era_adj.Rds"))
+asos <- readRDS(file.path(asos_adj_dir, "PAJN.Rds"))
+cm3 <- readRDS(file.path(cm3_adj_dir, "PAJN_cm3h_adj.Rds")) %>%
+  bind_rows(readRDS(file.path(cm3_adj_dir, "PAJN_cm3f_adj.Rds")))
+ccsm4 <- readRDS(file.path(ccsm4_adj_dir, "PAJN_ccsm4h_adj.Rds")) %>%
+  bind_rows(readRDS(file.path(ccsm4_adj_dir, "PAJN_ccsm4f_adj.Rds")))
+
+for(i in seq_along(t_start)){
+  start <- t_start[i] - hours(48)
+  end <- start + hours(192)
+  
+  asos_event <- asos %>% 
+    filter(t_round >= start & t_round <= end) %>%
+    select(t_round, sped_adj) %>% 
+    rename(ts = t_round, ASOS = sped_adj)
+  
+  era_event <- era %>%
+    filter(ts >= start & ts <= end) %>%
+    select(ts, sped_adj) %>% 
+    rename(ERA = sped_adj)
+  
+  cm3_event <- cm3 %>%
+    filter(ts >= start & ts <= end) %>%
+    select(ts, sped_adj) %>% 
+    rename(CM3 = sped_adj)
+  
+  event_df <- ccsm4 %>% 
+    filter(ts >= start & ts <= end) %>%
+    select(ts, sped_adj) %>%
+    rename(CCSM4 = sped_adj) %>%
+    left_join(asos_event, "ts") %>%
+    left_join(era_event, "ts") %>%
+    left_join(cm3_event, "ts") %>%
+    gather("Source", "sped", -ts)
+    
+  p <- ggplot(event_df, aes(ts, sped, color = Source)) + 
+    geom_line(size = 1) +
+    xlab("") + ylab("Speed (mph)") + 
+    ggtitle("PAJN", subtitle = t_start[i])
+  
+  print(p)
+  
+}
+
+```
+
+
+## Kaktovik
+```{r Kaktovik, echo = FALSE, fig.height = 3, fig.width = 8, warning = FALSE, message = FALSE}
+
+t_start <- ymd_hms(c("1994-02-14 03:00:00",
+                     "2003-12-29 12:00:00",
+                     "2007-11-23 09:00:00",
+                     "2008-12-09 17:00:00",
+                     "2012-01-17 04:00:00"))
+
+era <- readRDS(file.path(era_adj_dir, "PABA_era_adj.Rds"))
+asos <- readRDS(file.path(asos_adj_dir, "PABA.Rds"))
+cm3 <- readRDS(file.path(cm3_adj_dir, "PABA_cm3h_adj.Rds")) %>%
+  bind_rows(readRDS(file.path(cm3_adj_dir, "PABA_cm3f_adj.Rds")))
+ccsm4 <- readRDS(file.path(ccsm4_adj_dir, "PABA_ccsm4h_adj.Rds")) %>%
+  bind_rows(readRDS(file.path(ccsm4_adj_dir, "PABA_ccsm4f_adj.Rds")))
+
+for(i in seq_along(t_start)){
+  start <- t_start[i] - hours(48)
+  end <- start + hours(192)
+  
+  asos_event <- asos %>% 
+    filter(t_round >= start & t_round <= end) %>%
+    select(t_round, sped_adj) %>% 
+    rename(ts = t_round, ASOS = sped_adj)
+  
+  era_event <- era %>%
+    filter(ts >= start & ts <= end) %>%
+    select(ts, sped_adj) %>% 
+    rename(ERA = sped_adj)
+  
+  cm3_event <- cm3 %>%
+    filter(ts >= start & ts <= end) %>%
+    select(ts, sped_adj) %>% 
+    rename(CM3 = sped_adj)
+  
+  event_df <- ccsm4 %>% 
+    filter(ts >= start & ts <= end) %>%
+    select(ts, sped_adj) %>%
+    rename(CCSM4 = sped_adj) %>%
+    left_join(asos_event, "ts") %>%
+    left_join(era_event, "ts") %>%
+    left_join(cm3_event, "ts") %>%
+    gather("Source", "sped", -ts)
+    
+  p <- ggplot(event_df, aes(ts, sped, color = Source)) + 
+    geom_line(size = 1) +
+    xlab("") + ylab("Speed (mph)") + 
+    ggtitle("PABA", subtitle = t_start[i])
+  
+  print(p)
+  
+}
+
+```
+
+
+## Anchorage
+```{r Anchorage, echo = FALSE, fig.height = 3, fig.width = 8, warning = FALSE, message = FALSE}
+
+t_start <- ymd_hms(c("1982-02-11 14:00:00",
+                     "1989-03-03 21:00:00",
+                     "1994-02-20 11:00:00",
+                     "1997-03-16 12:00:00",
+                     "2003-03-12 19:00:00"))
+
+era <- readRDS(file.path(era_adj_dir, "PANC_era_adj.Rds"))
+asos <- readRDS(file.path(asos_adj_dir, "PANC.Rds"))
+cm3 <- readRDS(file.path(cm3_adj_dir, "PANC_cm3h_adj.Rds")) %>%
+  bind_rows(readRDS(file.path(cm3_adj_dir, "PANC_cm3f_adj.Rds")))
+ccsm4 <- readRDS(file.path(ccsm4_adj_dir, "PANC_ccsm4h_adj.Rds")) %>%
+  bind_rows(readRDS(file.path(ccsm4_adj_dir, "PANC_ccsm4f_adj.Rds")))
+
+for(i in seq_along(t_start)){
+  start <- t_start[i] - hours(48)
+  end <- start + hours(192)
+  
+  asos_event <- asos %>% 
+    filter(t_round >= start & t_round <= end) %>%
+    select(t_round, sped_adj) %>% 
+    rename(ts = t_round, ASOS = sped_adj)
+  
+  era_event <- era %>%
+    filter(ts >= start & ts <= end) %>%
+    select(ts, sped_adj) %>% 
+    rename(ERA = sped_adj)
+  
+  cm3_event <- cm3 %>%
+    filter(ts >= start & ts <= end) %>%
+    select(ts, sped_adj) %>% 
+    rename(CM3 = sped_adj)
+  
+  event_df <- ccsm4 %>% 
+    filter(ts >= start & ts <= end) %>%
+    select(ts, sped_adj) %>%
+    rename(CCSM4 = sped_adj) %>%
+    left_join(asos_event, "ts") %>%
+    left_join(era_event, "ts") %>%
+    left_join(cm3_event, "ts") %>%
+    gather("Source", "sped", -ts)
+    
+  p <- ggplot(event_df, aes(ts, sped, color = Source)) + 
+    geom_line(size = 1) +
+    xlab("") + ylab("Speed (mph)") + 
+    ggtitle("PANC", subtitle = t_start[i])
+  
+  print(p)
+  
+}
+
+```
+
+
+## Saint Paul
+```{r SaintPaul, echo = FALSE, fig.height = 3, fig.width = 8, warning = FALSE, message = FALSE}
+
+t_start <- ymd_hms(c("1987-03-20 15:00:00",
+                     "1991-12-21 11:00:00",
+                     "1997-01-08 00:00:00",
+                     "2004-12-24 04:00:00",
+                     "2013-03-07 12:00:00"))
+
+era <- readRDS(file.path(era_adj_dir, "PASN_era_adj.Rds"))
+asos <- readRDS(file.path(asos_adj_dir, "PASN.Rds"))
+cm3 <- readRDS(file.path(cm3_adj_dir, "PASN_cm3h_adj.Rds")) %>%
+  bind_rows(readRDS(file.path(cm3_adj_dir, "PASN_cm3f_adj.Rds")))
+ccsm4 <- readRDS(file.path(ccsm4_adj_dir, "PASN_ccsm4h_adj.Rds")) %>%
+  bind_rows(readRDS(file.path(ccsm4_adj_dir, "PASN_ccsm4f_adj.Rds")))
+
+for(i in seq_along(t_start)){
+  start <- t_start[i] - hours(48)
+  end <- start + hours(192)
+  
+  asos_event <- asos %>% 
+    filter(t_round >= start & t_round <= end) %>%
+    select(t_round, sped_adj) %>% 
+    rename(ts = t_round, ASOS = sped_adj)
+  
+  era_event <- era %>%
+    filter(ts >= start & ts <= end) %>%
+    select(ts, sped_adj) %>% 
+    rename(ERA = sped_adj)
+  
+  cm3_event <- cm3 %>%
+    filter(ts >= start & ts <= end) %>%
+    select(ts, sped_adj) %>% 
+    rename(CM3 = sped_adj)
+  
+  event_df <- ccsm4 %>% 
+    filter(ts >= start & ts <= end) %>%
+    select(ts, sped_adj) %>%
+    rename(CCSM4 = sped_adj) %>%
+    left_join(asos_event, "ts") %>%
+    left_join(era_event, "ts") %>%
+    left_join(cm3_event, "ts") %>%
+    gather("Source", "sped", -ts)
+    
+  p <- ggplot(event_df, aes(ts, sped, color = Source)) + 
+    geom_line(size = 1) +
+    xlab("") + ylab("Speed (mph)") + 
+    ggtitle("PASN", subtitle = t_start[i])
+  
+  print(p)
+  
+}
+
+```
+
+## Kodiak
+```{r Kodiak, echo = FALSE, fig.height = 3, fig.width = 8, warning = FALSE, message = FALSE}
+
+t_start <- ymd_hms(c("1988-04-14 23:00:00",
+                     "1990-03-06 00:00:00",
+                     "1994-11-21 14:00:00",
+                     "2006-03-09 08:00:00",
+                     "2013-01-01 01:00:00"))
+
+era <- readRDS(file.path(era_adj_dir, "PADQ_era_adj.Rds"))
+asos <- readRDS(file.path(asos_adj_dir, "PADQ.Rds"))
+cm3 <- readRDS(file.path(cm3_adj_dir, "PADQ_cm3h_adj.Rds")) %>%
+  bind_rows(readRDS(file.path(cm3_adj_dir, "PADQ_cm3f_adj.Rds")))
+ccsm4 <- readRDS(file.path(ccsm4_adj_dir, "PADQ_ccsm4h_adj.Rds")) %>%
+  bind_rows(readRDS(file.path(ccsm4_adj_dir, "PADQ_ccsm4f_adj.Rds")))
+
+for(i in seq_along(t_start)){
+  start <- t_start[i] - hours(48)
+  end <- start + hours(192)
+  
+  asos_event <- asos %>% 
+    filter(t_round >= start & t_round <= end) %>%
+    select(t_round, sped_adj) %>% 
+    rename(ts = t_round, ASOS = sped_adj)
+  
+  era_event <- era %>%
+    filter(ts >= start & ts <= end) %>%
+    select(ts, sped_adj) %>% 
+    rename(ERA = sped_adj)
+  
+  cm3_event <- cm3 %>%
+    filter(ts >= start & ts <= end) %>%
+    select(ts, sped_adj) %>% 
+    rename(CM3 = sped_adj)
+  
+  event_df <- ccsm4 %>% 
+    filter(ts >= start & ts <= end) %>%
+    select(ts, sped_adj) %>%
+    rename(CCSM4 = sped_adj) %>%
+    left_join(asos_event, "ts") %>%
+    left_join(era_event, "ts") %>%
+    left_join(cm3_event, "ts") %>%
+    gather("Source", "sped", -ts)
+    
+  p <- ggplot(event_df, aes(ts, sped, color = Source)) + 
+    geom_line(size = 1) +
+    xlab("") + ylab("Speed (mph)") + 
+    ggtitle("PADQ", subtitle = t_start[i])
+  
+  print(p)
+  
+}
+
+```
+
 
 ## Fairbanks
 ```{r Fairbanks, echo = FALSE, fig.height = 3, fig.width = 8, warning = FALSE, message = FALSE}
