@@ -6,10 +6,13 @@ library(ncdf4)
 library(raster) 
 library(rgdal)
 library(ggplot2)
+library(dplyr)
+library(lubridate)
 
 
 workdir <- getwd()
 datadir <- file.path(workdir, "data")
+figdir <- file.path(workdir, "figures", "wrf_scrap")
 wrf_data_dir <- file.path(datadir, "WRF")
 
 #-- WRF Data Explore ----------------------------------------------------------
@@ -130,3 +133,349 @@ temp <- apply(wrf_coords, c(1, 2), euc.dist, coords)
 which(temp == min(temp), arr.ind = TRUE)
 
 #------------------------------------------------------------------------------
+
+#-- WRF Leap days? ------------------------------------------------------------
+cm3_dir <- "F:/Wind_Climatology/data/WRF_output/CM3_u10"
+u10_path <- file.path(cm3_dir, 
+                      "u10_hourly_wrf_GFDL-CM3_historical_1980.nc")
+# open connection for pulling data
+u10 <- nc_open(u10_path)
+ts_1980 <- ncvar_get(u10, varid = "time")
+nc_close(u10)
+
+u10_path <- file.path(cm3_dir, 
+                      "u10_hourly_wrf_GFDL-CM3_historical_1981.nc")
+# open connection for pulling data
+u10 <- nc_open(u10_path)
+ts_1981 <- ncvar_get(u10, varid = "time")
+nc_close(u10)
+
+length(ts_1980)
+length(ts_1981)
+
+#------------------------------------------------------------------------------
+
+#-- Quantile Mapping Errors ---------------------------------------------------
+# did a mistake in the quantile mapping of WRF data cause a problem?
+#   ~10% differences in count of high wind events
+era_adj_dir <- file.path(datadir, "ERA_stations_adj")
+cm3_adj_dir <- file.path(datadir, "CM3_stations_adj")
+ccsm4_adj_dir <- file.path(datadir, "CCSM4_stations_adj")
+
+# first, load some quantile mapped data
+paom_era <- readRDS(file.path(era_adj_dir, "PAOM_era_adj.Rds"))
+paom_erah <- paom_era %>% filter(ts < ymd("2006-01-01"))
+paom_cm3h <- readRDS(file.path(cm3_adj_dir, "PAOM_cm3h_adj.Rds"))
+paom_cm3f <- readRDS(file.path(cm3_adj_dir, "PAOM_cm3f_adj.Rds"))
+paom_ccsm4h <- readRDS(file.path(ccsm4_adj_dir, "PAOM_ccsm4h_adj.Rds"))
+paom_ccsm4f <- readRDS(file.path(ccsm4_adj_dir, "PAOM_ccsm4f_adj.Rds"))
+
+# original qMapWind function
+qMapWindOrig <- function(obs = NULL, sim, 
+                     ret.deltas = FALSE, 
+                     use.deltas = NULL){
+  
+  if(is.null(use.deltas)){
+    qn <- min(length(obs), length(sim))
+    qx <- quantile(sim, seq(0, 1, length.out = qn), type = 8)
+    qy <- quantile(obs, seq(0, 1, length.out = qn), type = 8)
+    q_deltas <- qx - qy
+  } else {
+    qx <- quantile(sim, seq(0, 1, length.out = length(use.deltas)), 
+                   type = 8)
+    q_deltas = use.deltas
+  }
+  
+  # bin "sim" observations into quantiles. Will use these indices to 
+  #   index deltas vector for adjustment
+  qi <- .bincode(sim, qx, include.lowest = TRUE)
+  
+  # duplicate quantiles are not represented in this binning,
+  #   need to represent for all deltas to be applied
+  dup_qx <- unique(qx[duplicated(qx)])
+  dup_qi <- sort(unique(qi[which(qx[qi + 1] %in% dup_qx)]))
+  last_dupi <- c((dup_qi - 1)[-1], length(qx))
+  dup_qi <- dup_qi + as.numeric(paste0("0.", last_dupi))
+  
+  # distribute duplicated quantile indices in place of repeated 
+  tempFun <- function(dup_qi, qi){
+    end <- as.integer(substring(round(dup_qi - trunc(dup_qi), 3), 3))
+    dup_qi <- trunc(dup_qi)
+    qij <- which(qi == dup_qi)
+    n <- length(qij)
+    qis <- rep(0, n)
+    suppressWarnings(qis[rep(TRUE, n)] <- dup_qi:end)
+    names(qis) <- qij
+    qis
+  }
+  # and replace qi's with these recycled indices
+  new_qi <- unlist(lapply(dup_qi, tempFun, qi))
+  qij <- as.integer(names(new_qi))
+  qi[qij] <- new_qi
+  
+  sim_adj <- sim - as.numeric(q_deltas)[qi]
+  # return adjusted
+  if(ret.deltas == TRUE){
+    return(list(deltas = q_deltas, sim_adj = sim_adj))
+  } else {return(sim_adj)}
+}
+
+
+# New qMapWind function
+qMapWindNew <- function(obs = NULL, sim, 
+                     ret.deltas = FALSE, 
+                     use.deltas = NULL){
+  
+  if(is.null(use.deltas)){
+    qn <- min(length(obs), length(sim))
+    qx <- quantile(sim, seq(0, 1, length.out = qn), type = 8)
+    qy <- quantile(obs, seq(0, 1, length.out = qn), type = 8)
+    q_deltas <- qx - qy
+  } else {
+    qx <- quantile(sim, seq(0, 1, length.out = length(use.deltas)), 
+                   type = 8)
+    q_deltas = use.deltas
+  }
+  
+  # bin "sim" observations into quantiles. Will use these indices to 
+  #   index deltas vector for adjustment
+  qi <- .bincode(sim, qx, include.lowest = TRUE)
+  
+  df <- data.frame(lower=sort(unique(qi)), freq=as.integer(table(qi)))
+  df$upper <- c(df$lower[-1] - df$lower[-nrow(df)], 1) + df$lower - 1
+  # want to omit this adjustment if the first quantile is also the first
+  #   duplicate
+  ub <- df$lower != 1
+  df$upper[ub] <- df$upper[ub] - as.numeric(df$upper[ub] > df$lower[ub] & 
+                                              qx[df$upper[ub]] < qx[df$upper[ub] + 1])
+  
+  recycled <- apply(df, 1, function(x) {
+    out <- rep(x["lower"]:x["upper"], length.out=x["freq"])
+    
+    return(out)
+  })
+  
+  qi <- unlist(recycled)[order(order(qi))]
+  
+  sim_adj <- sim - as.numeric(q_deltas)[qi]
+  # return adjusted
+  if(ret.deltas == TRUE){
+    return(list(deltas = q_deltas, sim_adj = sim_adj))
+  } else {return(sim_adj)}
+}
+
+sim <- paom_cm3h$sped
+obs <- paom_erah$sped_adj
+adj <- qMapWindNew(obs = obs, sim = sim, ret.deltas = TRUE)
+paom_cm3h$sped_adj_new <- adj[[1]]
+
+df <- paom_erah %>%
+  select(ts, sped_adj) %>%
+  rename(ERA = sped_adj) %>%
+  left_join(paom_cm3h, by = "ts") %>%
+  select(ts, ERA, sped_adj) %>%
+  rename(CM3h = sped_adj) %>%
+  gather("Source", "Speed", -ts)
+
+df %>%
+  filter(Speed >= 30) %>%
+  group_by(Source) %>%
+  summarise(Count = n()) %>%
+  rename(`Nome Source` = Source)
+
+sim <- paom_cm3f$sped
+adj <- qMapWindNew(sim = sim, use.deltas = adj[[2]])
+paom_cm3f$sped_adj_new <- adj
+
+# counts of winds over 30 from CM3 and ERA between 2006-01-01 and 
+#   2014-12-31. Herein lie zeh issue
+paom_era %>% 
+  filter(ts >= ymd("2006-01-01")) %>%
+  select(ts, sped_adj) %>%
+  rename(ERA = sped_adj) %>%
+  left_join(paom_cm3f, by = "ts") %>%
+  select(ts, ERA, sped_adj) %>%
+  rename(CM3f = sped_adj) %>%
+  filter(ts < ymd("2015-01-01")) %>%
+  gather("Source", "Speed", -ts) %>%
+  filter(Speed >= 30) %>%
+  group_by(Source) %>%
+  summarise(Count = n()) %>%
+  rename(`Nome Source` = Source)
+
+# counts of winds over 30 from CCSM4 and ERA between 2006-01-01 and 
+#   2014-12-31. 
+paom_era %>% 
+  filter(ts >= ymd("2006-01-01")) %>%
+  select(ts, sped_adj) %>%
+  rename(ERA = sped_adj) %>%
+  left_join(paom_ccsm4f, by = "ts") %>%
+  select(ts, ERA, sped_adj) %>%
+  rename(CCSM4f = sped_adj) %>%
+  filter(ts < ymd("2015-01-01")) %>%
+  gather("Source", "Speed", -ts) %>%
+  filter(Speed >= 30) %>%
+  group_by(Source) %>%
+  summarise(Count = n()) %>%
+  rename(`Nome Source` = Source)
+
+
+# generate ECDFs comparing WRF historical and future models
+# CM3
+temp_cm3f <- paom_cm3f %>%
+  select(ts, sped) %>%
+  rename(CM3F = sped) %>%
+  gather("Source", "Speed", -ts)
+
+df1 <- paom_cm3h %>%
+  select(ts, sped) %>%
+  rename(CM3H = sped) %>%
+  gather("Source", "Speed", -ts) %>%
+  bind_rows(temp_cm3f)
+
+# CCSM4
+temp_ccsm4f <- paom_ccsm4f %>%
+  select(ts, sped) %>%
+  rename(CCSM4F = sped) %>%
+  gather("Source", "Speed", -ts)
+
+df2 <- paom_ccsm4h %>%
+  select(ts, sped) %>%
+  rename(CCSM4H = sped) %>%
+  gather("Source", "Speed", -ts) %>%
+  bind_rows(temp_ccsm4f)
+
+g_legend <- function(a.gplot){
+  tmp <- ggplot_gtable(ggplot_build(a.gplot))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  legend <- tmp$grobs[[leg]]
+  return(legend)}
+
+xmax <- 50
+p1 <- ggplot(df1, aes(Speed, color = Source)) + 
+  stat_ecdf(size = 0.5) + 
+  xlab("Wind Speed (MPH)") + ylab("Cumulative Probability") + 
+  xlim(c(0, xmax)) + scale_color_discrete(name = "Model: ", 
+                                         labels = c("Future", "Historical")) + 
+  theme(legend.position = "bottom") +
+  ggtitle("CM3")
+
+# corrected data
+p2 <- ggplot(df2, aes(Speed, color = Source)) + 
+  stat_ecdf(size = 0.5) + 
+  xlab("Wind Speed (MPH)") + ylab(element_blank()) + 
+  xlim(c(0, xmax))  + ggtitle("CCSM4")
+
+# legend code adapted from:
+# https://github.com/hadley/ggplot2/wiki/Share-a-legend-between-two-ggplot2-graphs
+tmp <- ggplot_gtable(ggplot_build(p1))
+leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+mylegend <- tmp$grobs[[leg]]
+
+p <- arrangeGrob(arrangeGrob(p1 + theme(legend.position = "none"),
+                             p2 + theme(legend.position = "none"), 
+                             nrow = 1),
+                 mylegend, nrow=2, heights = c(10, 1))
+
+fig_path <- file.path(figdir, "PAOM_WRF_historical_future_ECDFs.png")
+ggsave(fig_path, p, dev = "png", width = 8.93, height = 6)
+#------------------------------------------------------------------------------
+
+#-- Bar Plots for Wind Speeds over 30 -----------------------------------------
+# did a mistake in the quantile mapping of WRF data cause a problem?
+#   ~10% differences in count of high wind events
+asos_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
+era_adj_dir <- file.path(datadir, "ERA_stations_adj")
+cm3_adj_dir <- file.path(datadir, "CM3_stations_adj")
+ccsm4_adj_dir <- file.path(datadir, "CCSM4_stations_adj")
+
+# first, load some quantile mapped data
+# Nome
+paom_asos_30 <- readRDS(file.path(asos_adj_dir, "PAOM.Rds")) %>%
+  filter(t_round < ymd("2015-01-01"),
+         sped_adj >= 30) %>%
+  rename(ts = t_round, ASOS = sped_adj) %>%
+  select(ts, ASOS) %>%
+  gather("Source", "Speed", -ts)
+paom_era_30 <- readRDS(file.path(era_adj_dir, "PAOM_era_adj.Rds")) %>%
+  filter(ts < ymd("2015-01-01"),
+         sped_adj >= 30) %>%
+  rename(ERA = sped_adj) %>%
+  select(ts, ERA)%>%
+  gather("Source", "Speed", -ts)
+paom_cm3_30 <- readRDS(file.path(cm3_adj_dir, "PAOM_cm3h_adj.Rds")) %>%
+  bind_rows(readRDS(file.path(cm3_adj_dir, "PAOM_cm3f_adj.Rds"))) %>%
+  filter(ts < ymd("2015-01-01"),
+         sped_adj >= 30) %>%
+  rename(CM3 = sped_adj) %>%
+  select(ts, CM3)%>%
+  gather("Source", "Speed", -ts)
+paom_ccsm4_30 <- readRDS(file.path(ccsm4_adj_dir, "PAOM_ccsm4h_adj.Rds")) %>%
+  bind_rows(readRDS(file.path(ccsm4_adj_dir, "PAOM_ccsm4f_adj.Rds"))) %>%
+  filter(ts < ymd("2015-01-01"),
+         sped_adj >= 30) %>%
+  rename(CCSM4 = sped_adj) %>%
+  select(ts, CCSM4)%>%
+  gather("Source", "Speed", -ts)
+
+df <- paom_asos_30 %>%
+  bind_rows(paom_era_30, paom_cm3_30, paom_ccsm4_30) %>%
+  mutate(Y = factor(format(ts, "%Y"), 
+                    levels = as.character(1980:2014)),
+         Source = factor(Source, levels = c("ASOS", "ERA", 
+                                            "CM3", "CCSM4"))) %>%
+  group_by(Source, Y) %>%
+  summarise(count = n())
+
+p1 <- ggplot(df, aes(x = Y, y = count, fill = Source)) +
+  geom_bar(stat = "identity", position = "dodge") + 
+  theme_classic() + xlab("Year") + ylab("Count") +
+  ggtitle("Nome")
+
+fig_path <- file.path(figdir, "Over30_barplot_PAOM.png")
+ggsave(fig_path, p1, dev = "png", width = 15, height = 8)
+
+# Barrow
+pabr_asos_30 <- readRDS(file.path(asos_adj_dir, "PABR.Rds")) %>%
+  filter(t_round < ymd("2015-01-01"),
+         sped_adj >= 30) %>%
+  rename(ts = t_round, ASOS = sped_adj) %>%
+  select(ts, ASOS) %>%
+  gather("Source", "Speed", -ts)
+pabr_era_30 <- readRDS(file.path(era_adj_dir, "PABR_era_adj.Rds")) %>%
+  filter(ts < ymd("2015-01-01"),
+         sped_adj >= 30) %>%
+  rename(ERA = sped_adj) %>%
+  select(ts, ERA)%>%
+  gather("Source", "Speed", -ts)
+pabr_cm3_30 <- readRDS(file.path(cm3_adj_dir, "PABR_cm3h_adj.Rds")) %>%
+  bind_rows(readRDS(file.path(cm3_adj_dir, "PABR_cm3f_adj.Rds"))) %>%
+  filter(ts < ymd("2015-01-01"),
+         sped_adj >= 30) %>%
+  rename(CM3 = sped_adj) %>%
+  select(ts, CM3)%>%
+  gather("Source", "Speed", -ts)
+pabr_ccsm4_30 <- readRDS(file.path(ccsm4_adj_dir, "PABR_ccsm4h_adj.Rds")) %>%
+  bind_rows(readRDS(file.path(ccsm4_adj_dir, "PABR_ccsm4f_adj.Rds"))) %>%
+  filter(ts < ymd("2015-01-01"),
+         sped_adj >= 30) %>%
+  rename(CCSM4 = sped_adj) %>%
+  select(ts, CCSM4)%>%
+  gather("Source", "Speed", -ts)
+
+df <- pabr_asos_30 %>%
+  bind_rows(pabr_era_30, pabr_cm3_30, pabr_ccsm4_30) %>%
+  mutate(Y = factor(format(ts, "%Y"), 
+                    levels = as.character(1980:2014)),
+         Source = factor(Source, levels = c("ASOS", "ERA", 
+                                            "CM3", "CCSM4"))) %>%
+  group_by(Source, Y) %>%
+  summarise(count = n())
+
+p2 <- ggplot(df, aes(x = Y, y = count, fill = Source)) +
+  geom_bar(stat = "identity", position = "dodge") + 
+  theme_classic() + xlab("Year") + ylab("Count") +
+  ggtitle("Barrow")
+
+fig_path <- file.path(figdir, "Over30_barplot_PABR.png")
+ggsave(fig_path, p2, dev = "png", width = 15, height = 8)

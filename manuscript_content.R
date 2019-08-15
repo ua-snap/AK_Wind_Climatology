@@ -13,7 +13,7 @@
 #
 # Output files:
 #   /figures/manuscript/AK_ASOS_station_locations.pdf
-#   /figured/manuscript/
+#   /figured/manuscript/asos_discont_adj_ex.pdf
 
 
 
@@ -70,6 +70,7 @@ library(dplyr)
 library(lubridate)
 library(ggplot2)
 library(gridExtra)
+library(grid)
 
 # select/adj data summarized by month
 monthly_adj_path <- file.path(datadir, 
@@ -86,80 +87,93 @@ date_breaks <- ymd(c("1980-01-01", "1985-01-01", "1990-01-01", "1995-01-01",
                      "2000-01-01", "2005-01-01", "2010-01-01", "2015-01-01"))
 
 # display time series for PAED and PAFA
-stid1 <- "PAFA"
-asos_station <- asos_monthly %>% 
+stid1 <- "PADK"
+asos_station1 <- asos_monthly %>% 
   filter(stid == stid1)
 
 # changepoint info
-cpts_temp <- cpts_df[cpts_df$stid == stid1, ]
+cpts_temp1 <- cpts_df[cpts_df$stid == stid1, ]
 # starting x for mean 1 horizontal line
-x1_start <- ymd("1980-01-01")
-x1_end <- cpts_temp[1, 2]
-x2_end <- ymd("2015-01-01")
-m1 <- cpts_temp[1, 4]
-m2 <- cpts_temp[1, 5]
+x1_start1 <- ymd("1980-01-01")
+x1_end1 <- cpts_temp1[1, 2]
+x2_end1 <- ymd("2015-01-01")
+m1_1 <- cpts_temp1[1, 4]
+m2_1 <- cpts_temp1[1, 5]
 
-p1 <- ggplot(asos_station, aes(ym_date, avg_sped, group = 1)) + 
-  theme_bw() + 
-  theme(panel.grid = element_blank()) +
+p1 <- ggplot(asos_station1, aes(ym_date, avg_sped, group = 1)) + 
   geom_line(col = "grey") +
-  xlab("") + ylab("Avg Speed (mph)") + 
   xlim(ymd("1980-01-01"), ymd("2015-01-01")) + 
   scale_x_date(date_labels = date_labels, breaks = date_breaks) + 
-  ggtitle("Fairbanks International Airport") + 
-  geom_vline(xintercept = ymd("1980-01-01"), col = "gray50", 
-             lty = 3, size = 1.25) + 
-  geom_vline(xintercept = ymd("2015-01-01"), col = "gray50", 
-             lty = 3, size = 1.25) + 
-  geom_vline(xintercept = x1_end, 
+  ggtitle("Kodiak Municipal Airport") + 
+  geom_vline(xintercept = x1_start1, col = "gray50", 
+             lty = 3, size = 1) + 
+  geom_vline(xintercept = x2_end1, col = "gray50", 
+             lty = 3, size = 1) + 
+  geom_vline(xintercept = x1_end1, 
              col = "red", size = 1.5) + 
-  geom_segment(aes(x = x1_start, xend = x1_end, y = m1, yend = m1),
+  geom_segment(aes(x = x1_start1, xend = x1_end1, y = m1_1, yend = m1_1),
                col = "blue") +
-  geom_segment(aes(x = x1_end, xend = x2_end, y = m2, yend = m2),
+  geom_segment(aes(x = x1_end1, xend = x2_end1, y = m2_1, yend = m2_1),
                col = "blue") +
-  geom_line(aes(ym_date, avg_sped_adj, group = 1))
+  geom_line(aes(ym_date, avg_sped_adj, group = 1)) + 
+  scale_y_continuous(limits = c(0, 25), breaks = c(0, 5, 10, 15, 20, 25)) +
+  theme_bw() + 
+  theme(panel.grid = element_blank(), 
+        axis.title = element_blank(),
+        plot.title = element_text(size = 10)) 
 
 # second station (two discontinuities)
 # display time series for PAED and PAFA
-stid2 <- "PAEI"
-asos_station <- asos_monthly %>% 
+stid2 <- "PABA"
+asos_station2 <- asos_monthly %>% 
   filter(stid == stid2)
 
 # changepoint info
-cpts_temp <- cpts_df[cpts_df$stid == stid2, ]
+cpts_temp2 <- cpts_df[cpts_df$stid == stid2, ]
 # starting x for mean 1 horizontal line
-x1_start <- ymd("1980-01-01")
-x1_end <- cpts_temp[1, 2]
-x2_end <- cpts_temp[1, 3]
-x3_end <- ymd("2015-01-01")
-m1 <- cpts_temp[1, 4]
-m2 <- cpts_temp[1, 5]
-m3 <- cpts_temp[1, 6]
+x1_start2 <- ymd("1980-01-01")
+x1_end2 <- cpts_temp2[1, 2]
+x2_end2 <- cpts_temp2[1, 3]
+x3_end2 <- ymd("2015-01-01")
+m1_2 <- cpts_temp2[1, 4]
+m2_2 <- cpts_temp2[1, 5]
+m3_2 <- cpts_temp2[1, 6]
 
-p2 <- ggplot(asos_station, aes(ym_date, avg_sped, group = 1)) + 
-  theme_bw() + 
-  theme(panel.grid = element_blank()) +
+p2 <- ggplot(asos_station2, aes(ym_date, avg_sped, group = 1)) + 
   geom_line(col = "grey") +
-  xlab("") + ylab("Avg Speed (mph)") + 
   xlim(ymd("1980-01-01"), ymd("2015-01-01")) + 
   scale_x_date(date_labels = date_labels, breaks = date_breaks) + 
-  ggtitle("Eielson AFB") + 
-  geom_vline(xintercept = ymd("1980-01-01"), col = "gray50", 
-             lty = 3, size = 1.25) + 
-  geom_vline(xintercept = ymd("2015-01-01"), col = "gray50", 
-             lty = 3, size = 1.25) + 
-  geom_vline(xintercept = x1_end, 
+  ggtitle("Barter Island") + 
+  geom_vline(xintercept = x1_start2, col = "gray50", 
+             lty = 3, size = 1) + 
+  geom_vline(xintercept = x3_end2, col = "gray50", 
+             lty = 3, size = 1) + 
+  geom_vline(xintercept = x1_end2, 
              col = "red", size = 1.5) + 
-  geom_vline(xintercept = c(x1_end, x2_end), 
+  geom_vline(xintercept = c(x1_end2, x2_end2), 
              col = "red", size = 1.5) + 
-  geom_segment(aes(x = x1_start, xend = x1_end, y = m1, yend = m1),
+  geom_segment(aes(x = x1_start2, xend = x1_end2, y = m1_2, yend = m1_2),
                col = "blue") +
-  geom_segment(aes(x = x1_end, xend = x2_end, y = m2, yend = m2),
+  geom_segment(aes(x = x1_end2, xend = x2_end2, y = m2_2, yend = m2_2),
                col = "blue") +
-  geom_segment(aes(x = x2_end, xend = x3_end, y = m3, yend = m3),
+  geom_segment(aes(x = x2_end2, xend = x3_end2, y = m3_2, yend = m3_2),
                col = "blue") +
-  geom_line(aes(ym_date, avg_sped_adj, group = 1))
+  geom_line(aes(ym_date, avg_sped_adj, group = 1)) +
+  scale_y_continuous(limits = c(0, 25), breaks = c(0, 5, 10, 15, 20, 25)) +
+  theme_bw() + 
+  theme(panel.grid = element_blank(),
+        axis.title = element_blank(),
+        plot.title = element_text(size = 10)) 
 
-p <- arrangeGrob(p1, p2, nrow = 2)
-fig_path <- file.path(figdir, "discontinuity_adjust_ex.pdf")
-ggsave(fig_path, plot = p, device = "pdf", width = 7.25, height = 2.05)
+p <- arrangeGrob(p1, p2, nrow = 2, 
+                 left = textGrob("Avg Speed (mph)", gp = gpar(fontsize = 10),
+                                 rot = 90),
+                 bottom = textGrob("Time", gp = gpar(fontsize = 10)))
+fig_path <- file.path(figdir, "asos_discont_adj_ex.pdf")
+ggsave(fig_path, plot = p, device = "pdf", width = 7.25, height = 2.65)
+
+#------------------------------------------------------------------------------
+
+#-- ERA & CM3 ECDFs -----------------------------------------------------------
+source(file.path(workdir, "code", "helpers.R"))
+
