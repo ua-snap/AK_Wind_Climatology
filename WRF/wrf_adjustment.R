@@ -17,17 +17,15 @@
 #   as in model runs)
 #
 # Output files:
-#   /data/ERA_stations_adj/"stids"_era_adj.Rds
-#   /data/ERA_stations_adj_csv/"stids"_era_adj.csv
-#   /data/CM3_stations_adj/"stids"_cm3h_adj.Rds
-#   /data/CM3_stations_adj/"stids"_cm3f_adj.Rds
-#   /data/CM3_stations_adj_csv/"stids"_cm3h_adj.csv
-#   /data/CM3_stations_adj_csv/"stids"_cm3f_adj.csv
-#   /data/CCSM4_stations_adj/"stids"_ccsm4h_adj.Rds
-#   /data/CCSM4_stations_adj/"stids"_ccsm4f_adj.Rds
-#   /data/CCSM4_stations_adj_csv/"stids"_ccsm4h_adj.csv
-#   /data/CCSM4_stations_adj_csv/"stids"_ccsm4f_adj.csv
-#   /figures/
+#   /data/ERA_stations_adj/"stid"_era_adj.Rds
+#   /data/ERA_stations_adj_csv/"stid"_era_adj.csv
+#   /data/CM3_stations_adj/"stid"_cm3"h/f"_adj.Rds
+#   /data/CM3_stations_adj_csv/"stid"_cm3"h/f"_adj.csv
+#   /data/CCSM4_stations_adj/"stid"_ccsm4"h/f"_adj.Rds
+#   /data/CCSM4_stations_adj_csv/"stid"_ccsm4"h/f"_adj.csv
+#   /figures/era_adj_ecdfs/"stid"_era.png
+#   /figures/cm3_adj_ecdfs/"stid"_cm3"h/f".png
+#   /figures/ccsm4_adj_ecdfs/"stid"_ccsm4"h/f".png
 
 
 

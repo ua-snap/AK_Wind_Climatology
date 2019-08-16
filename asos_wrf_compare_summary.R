@@ -26,39 +26,50 @@ ccsm4_dir <- file.path(datadir, "CCSM4_stations_adj")
 
 #-- Compare Means and Counts --------------------------------------------------
 h_cut <- ymd_hms("2014-12-31 23:00:00")
-# Barrow
-asos <- readRDS(file.path(asos_dir, "PABR.Rds")) %>%
-  filter(t_round <= h_cut) %>%
-  rename(ts = t_round)
-# era
-era <- readRDS(file.path(era_dir, "PABR_era_adj.Rds")) %>%
-  filter(ts <= h_cut)
-# cm3h
-cm3h <- readRDS(file.path(cm3_dir, "PABR_cm3h_adj.Rds")) %>%
-  bind_rows(readRDS(file.path(cm3_dir, "PABR_cm3f_adj.Rds"))) %>%
-  filter(ts <= h_cut)
-# ccsm4h
-ccsm4h <- readRDS(file.path(ccsm4_dir, "PABR_ccsm4h_adj.Rds")) %>%
-  bind_rows(readRDS(file.path(ccsm4_dir, "PABR_ccsm4f_adj.Rds"))) %>%
-  filter(ts <= h_cut)
 
-df <- era %>%
-  select(ts, sped_adj) %>%
-  rename(ERA = sped_adj) %>%
-  left_join(asos, by = "ts") %>%
-  select(ts, ERA, sped_adj) %>%
-  rename(ASOS = sped_adj) %>%
-  left_join(cm3h, by = "ts") %>%
-  rename(CM3 = sped_adj) %>%
-  select(ts, ERA, ASOS, CM3) %>%
-  left_join(ccsm4h, by = "ts") %>%
-  rename(CCSM4 = sped_adj) %>%
-  select(ts, ERA, ASOS, CM3, CCSM4) %>%
-  gather("Source", "Speed", -ts)
+# make function that takes the stid, time period, and threshold, and outputs 
+#   a df of speeds for all models:
+allSpeeds <- function(stid, t_start, t_end){
+  t_start <- ymd(t_start)
+  t_end <- ymd(t_end)
+  # asos
+  asos <- readRDS(file.path(asos_dir, paste0(stid, ".Rds"))) %>%
+    filter(t_round >= t_start & t_round <= t_end) %>%
+    rename(ts = t_round)
+  # era
+  era <- readRDS(file.path(era_dir, paste0(stid, "_era_adj.Rds"))) %>%
+    filter(ts >= t_start & ts <= t_end)
+  # cm3
+  cm3h <- readRDS(file.path(cm3_dir, paste0(stid, "_cm3h_adj.Rds"))) %>%
+    bind_rows(readRDS(file.path(cm3_dir, paste0(stid, "_cm3f_adj.Rds")))) %>%
+    filter(ts >= t_start & ts <= t_end)
+  # ccsm4
+  ccsm4h <- readRDS(file.path(ccsm4_dir, 
+                              paste0(stid, "_ccsm4h_adj.Rds"))) %>%
+    bind_rows(readRDS(file.path(ccsm4_dir, 
+                                paste0(stid, "_ccsm4f_adj.Rds")))) %>%
+    filter(ts >= t_start & ts <= t_end) %>%
+    rename(CCSM4 = sped_adj) %>%
+    gather()
 
-means <- df %>% group_by(Source) %>%
-  summarise(src.mean = jitter(mean(Speed, na.rm = TRUE)))
+  df <- era %>%
+    select(ts, sped_adj) %>%
+    rename(ERA = sped_adj) %>%
+    left_join(asos, by = "ts") %>%
+    select(ts, ERA, sped_adj) %>%
+    rename(ASOS = sped_adj) %>%
+    left_join(cm3h, by = "ts") %>%
+    rename(CM3 = sped_adj) %>%
+    select(ts, ERA, ASOS, CM3) %>%
+    left_join(ccsm4h, by = "ts") %>%
+    rename(CCSM4 = sped_adj) %>%
+    select(ts, ERA, ASOS, CM3, CCSM4) %>%
+    gather("Source", "Speed", -ts)
+  
+  return(df)
+}
 
+# function for plotting histograms
 asosWrfHist <- function(df, means, name){
   p <- ggplot(df, aes(x = Speed, color = Source)) +
     geom_histogram(fill = "white", position = "identity",
@@ -89,6 +100,12 @@ asosWrfHist <- function(df, means, name){
   return(list(p, p_in))
 }
 
+# Barrow histograms
+pabr_df <- allSpeeds("PABR", "1980-01-01", "2014-12-31")
+
+means <- pabr_df %>% group_by(Source) %>%
+  summarise(src.mean = jitter(mean(Speed, na.rm = TRUE)))
+
 plst <- asosWrfHist(df, means, "Barrow")
   
 fig_path <- file.path(figdir, "speed_hist_all_sources_PABR.png")
@@ -96,42 +113,8 @@ ggsave(fig_path, plst[[1]], dev = "png", width = 7, height = 5.5)
 fig_path <- file.path(figdir, "speed_hist_all_sources_PABR_over30.png")
 ggsave(fig_path, plst[[2]], dev = "png", width = 7, height = 5)
 
-# count_data
-PABR_count_df <- df %>%
-  filter(Speed >= 30) %>%
-  group_by(Source) %>%
-  summarise(Count = n()) %>%
-  rename(`Barrow Source` = Source)
-
-# Nome
-asos <- readRDS(file.path(asos_dir, "PAOM.Rds")) %>%
-  filter(t_round <= h_cut) %>%
-  rename(ts = t_round)
-# era
-era <- readRDS(file.path(era_dir, "PAOM_era_adj.Rds")) %>%
-  filter(ts <= h_cut)
-# cm3h
-cm3h <- readRDS(file.path(cm3_dir, "PAOM_cm3h_adj.Rds")) %>%
-  bind_rows(readRDS(file.path(cm3_dir, "PAOM_cm3f_adj.Rds"))) %>%
-  filter(ts <= h_cut)
-# ccsm4h
-ccsm4h <- readRDS(file.path(ccsm4_dir, "PAOM_ccsm4h_adj.Rds")) %>%
-  bind_rows(readRDS(file.path(ccsm4_dir, "PAOM_ccsm4f_adj.Rds"))) %>%
-  filter(ts <= h_cut)
-
-df <- era %>%
-  select(ts, sped_adj) %>%
-  rename(ERA = sped_adj) %>%
-  left_join(asos, by = "ts") %>%
-  select(ts, ERA, sped_adj) %>%
-  rename(ASOS = sped_adj) %>%
-  left_join(cm3h, by = "ts") %>%
-  rename(CM3 = sped_adj) %>%
-  select(ts, ERA, ASOS, CM3) %>%
-  left_join(ccsm4h, by = "ts") %>%
-  rename(CCSM4 = sped_adj) %>%
-  select(ts, ERA, ASOS, CM3, CCSM4) %>%
-  gather("Source", "Speed", -ts)
+# Nome histograms
+paom_df <- allSpeeds("PAOM", "1980-01-01", "2014-12-31")
 
 means <- df %>% group_by(Source) %>%
   summarise(src.mean = jitter(mean(Speed, na.rm = TRUE)))
@@ -144,7 +127,14 @@ fig_path <- file.path(figdir, "speed_hist_all_sources_PAOM_over30.png")
 ggsave(fig_path, plst[[2]], dev = "png", width = 7, height = 5)
 
 # count_data
-PAOM_count_df <- df %>%
+# climatology period
+PABR_count_df <- pabr_df %>%
+  filter(Speed >= 30) %>%
+  group_by(Source) %>%
+  summarise(Count = n()) %>%
+  rename(`Barrow Source` = Source)
+
+PAOM_count_df <- paom_df %>%
   filter(Speed >= 30) %>%
   group_by(Source) %>%
   summarise(Count = n()) %>%
@@ -157,5 +147,45 @@ p2 <- tableGrob(PAOM_count_df, rows = NULL)
 grid.arrange(p1, p2, nrow = 2)
 dev.off()
 
-#------------------------------------------------------------------------------
+# "historical" overlap: 1980-2005
+PABR_count_df <- pabr_df %>%
+  filter(Speed >= 30 & ts <= ymd("2005-12-31")) %>%
+  group_by(Source) %>%
+  summarise(Count = n()) %>%
+  rename(`Barrow Source` = Source)
 
+PAOM_count_df <- paom_df %>%
+  filter(Speed >= 30 & ts <= ymd("2005-12-31")) %>%
+  group_by(Source) %>%
+  summarise(Count = n()) %>%
+  rename(`Nome Source` = Source)
+
+tbl_path <- file.path(figdir, "counts_over_30mph_1980-2005.png")
+png(tbl_path, height = 300, width = 200)
+p1 <- tableGrob(PABR_count_df, rows = NULL)
+p2 <- tableGrob(PAOM_count_df, rows = NULL)
+grid.arrange(p1, p2, nrow = 2)
+dev.off()
+
+# "future" overlap: 2006-2014
+PABR_count_df <- pabr_df %>%
+  filter(Speed >= 30 & 
+           ts >= ymd("2006-01-01") & ts <= ymd("2014-12-31")) %>%
+  group_by(Source) %>%
+  summarise(Count = n()) %>%
+  rename(`Barrow Source` = Source)
+
+PAOM_count_df <- paom_df %>%
+  filter(Speed >= 30 & 
+           ts >= ymd("2006-01-01") & ts <= ymd("2014-12-31")) %>%
+  group_by(Source) %>%
+  summarise(Count = n()) %>%
+  rename(`Nome Source` = Source)
+
+tbl_path <- file.path(figdir, "counts_over_30mph_2006-2014.png")
+png(tbl_path, height = 300, width = 200)
+p1 <- tableGrob(PABR_count_df, rows = NULL)
+p2 <- tableGrob(PAOM_count_df, rows = NULL)
+grid.arrange(p1, p2, nrow = 2)
+dev.off()
+#------------------------------------------------------------------------------
