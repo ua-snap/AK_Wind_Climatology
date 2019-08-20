@@ -21,6 +21,7 @@
 workdir <- getwd()
 datadir <- file.path(workdir, "data")
 figdir <- file.path(workdir, "figures", "manuscript")
+code_dir <- file.path(workdir, "code")
 
 #------------------------------------------------------------------------------
 
@@ -177,11 +178,16 @@ ggsave(fig_path, p, device = "pdf", width = 7.25, height = 2.65)
 #------------------------------------------------------------------------------
 
 #-- ERA & CM3 ECDFs -----------------------------------------------------------
+library(dplyr)
+library(lubridate)
+
 # ggECDF_compare modified for manuscript
 ggECDF_compare <- function(obs, sim, sim_adj, p_tag = " ",
-                           sim_lab, obs_lab){
+                           sim_lab, obs_lab, cols = 1){
   require(gridExtra)
   require(ggplot2)
+  require(grid)
+  require(wesanderson)
   
   df1 <- data.frame(sped = c(sim, obs),
                     quality = c(rep("1", length(sim)),
@@ -203,21 +209,31 @@ ggECDF_compare <- function(obs, sim, sim_adj, p_tag = " ",
   xmax <- quantile(obs, probs = seq(0, 1, 1/500))[500] + 5
   p1 <- ggplot(df1, aes(sped, color = quality)) + 
     stat_ecdf(size = 0.5) + 
-    xlim(c(0, xmax)) + scale_color_discrete(name = "  ", 
-                                            labels = c(sim_lab, obs_lab)) + 
+    xlim(c(0, xmax)) + #scale_color_discrete(name = "  ", 
+                        #                    labels = c(sim_lab, obs_lab)) + 
     # ggtitle(p_title) +
     # labs(tag = p_tag) +
     theme_bw() + 
-    theme(legend.position = "bottom",
+    theme(legend.position = "top",
           plot.title = element_text(vjust = -1),
           axis.title = element_blank(),
           panel.grid = element_blank(),
-          axis.text.x = element_text(size = 8),
-          axis.text.y = element_text(size = 8),
+          axis.text.x = element_text(size = 7),
+          axis.text.y = element_text(size = 7),
           legend.text = element_text(size = 8),
-          legend.margin = margin(0, 0, 0, 0),
+          legend.margin = margin(-5, 0, 0, 0),
           plot.margin = unit(c(2, 2, 2, 2), "mm"))
   
+  if(cols == 1){
+    p1 <- p1 + scale_color_manual(values = c("#FD6467", "#F1BB7B"),
+                                  name = "   ",
+                                  labels = c(sim_lab, obs_lab))
+  } else {
+    p1 <- p1 + scale_color_manual(values = c("#5B1A18", "#FD6467"),
+                                  name = "   ",
+                                  labels = c(sim_lab, obs_lab))
+  }
+
   # corrected data
   p2 <- ggplot(df2, aes(sped, color = quality)) + 
     stat_ecdf(size = 0.5) + 
@@ -227,8 +243,18 @@ ggECDF_compare <- function(obs, sim, sim_adj, p_tag = " ",
     theme(plot.title = element_text(vjust = -1),
           axis.title = element_blank(),
           panel.grid = element_blank(),
-          axis.text = element_text(size = 8),
+          axis.text = element_text(size = 7),
           plot.margin = unit(c(2, 2, 2, 2), "mm"))
+  
+  if(cols == 1){
+    p2 <- p2 + scale_color_manual(values = c("#FD6467", "#F1BB7B"),
+                                  name = "   ",
+                                  labels = c(sim_lab, obs_lab))
+  } else {
+    p2 <- p2 + scale_color_manual(values = c("#5B1A18", "#FD6467"),
+                                  name = "   ",
+                                  labels = c(sim_lab, obs_lab))
+  }
   
   # legend code adapted from:
   # https://github.com/hadley/ggplot2/wiki/Share-a-legend-between-two-ggplot2-graphs
@@ -236,21 +262,22 @@ ggECDF_compare <- function(obs, sim, sim_adj, p_tag = " ",
   leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
   mylegend <- tmp$grobs[[leg]]
   
-  p <- arrangeGrob(arrangeGrob(p1 + theme(legend.position = "none"),
+  p <- arrangeGrob(mylegend,
+                   arrangeGrob(p1 + theme(legend.position = "none"),
                                p2 + theme(legend.position = "none"), 
                                nrow = 1,
-                               top = textGrob(p_tag,
-                                              x = unit(0, "npc"),
-                                              y = unit(0.5, "npc"), 
-                                              just = c("left", "top")),
                                bottom = textGrob("Wind Speed (mph)",
                                                  x = unit(0.55, "npc"),
                                                  vjust = -0.5,
                                                  gp = gpar(fontsize = 8)),
                                left = textGrob("Cumulative Probability",
                                                gp = gpar(fontsize = 8),
-                                               rot = 90)),
-                   mylegend, nrow = 2, heights = c(15, 1))
+                                               rot = 90, hjust = 0.35)),
+                   nrow = 2, heights = c(1, 40),
+                   top = textGrob(p_tag,
+                                  x = unit(0.05, "npc"),
+                                  y = unit(0.30, "npc"), 
+                                  just = c("left", "top")))
   return(p)
 }
 
@@ -267,10 +294,124 @@ p1 <- ggECDF_compare(asos$sped_adj, era$sped, era$sped_adj + 0.5,
                      "A", "ERA-Interim", "ASOS")
 
 obs2 <- era$sped_adj[era$ts < ymd("2006-01-01")]
-p2 <- ggECDF_compare(obs2, cm3$sped, cm3$sped_adj,
-                     "B", "CM3 Historical", "ERA-Interim")
+p2 <- ggECDF_compare(obs2, cm3$sped, cm3$sped_adj + 0.5,
+                     "B", "CM3 Historical", "ERA-Interim", 2)
 
 p <- arrangeGrob(p1, p2, nrow = 2)
 
 fig_path <- file.path(figdir, "ERA_CM3_ECDFs.pdf")
-ggsave(fig_path, p1, dev = "pdf", width = 3.54, height = 4)
+ggsave(fig_path, p, dev = "pdf", width = 3.54, height = 4)
+
+#------------------------------------------------------------------------------
+
+#-- High Wind Events ----------------------------------------------------------
+# Need John to choose a couple
+
+#------------------------------------------------------------------------------
+
+#-- t-test heatmap ----------------------------------------------------------
+source(file.path(code_dir, "helpers.R"))
+
+stid_names <- read.csv(file.path(datadir, "AK_ASOS_names_key.csv"),
+                       stringsAsFactors = FALSE)
+
+cm3_monthly <- readRDS(file.path(datadir, "CM3_clim_monthly.Rds"))
+ccsm4_monthly <- readRDS(file.path(datadir, "CCSM4_clim_monthly.Rds"))
+
+stations <- readRDS(file.path(datadir, "AK_ASOS_select_stations.Rds"))
+stids <- stations$stid
+stid_names <- stations %>% select(stid, station_name)
+
+# CM3
+cm3_ttest <- lapply(stids, t_test_stid, cm3_monthly) %>%
+  bind_rows() 
+
+# CCSM4
+ccsm4_ttest <- lapply(stids, t_test_stid, ccsm4_monthly) %>%
+  bind_rows() 
+
+# t-test heatmap results function
+#tHeatmap <- function(t_obj, p_mod){
+
+cm3_sig <- cm3_ttest %>% 
+  left_join(stations, by = "stid") %>%
+  mutate(sig = if_else(p_val <= 0.05 & mean_x < mean_y, 
+                       "Future Signif. Higher", 
+                       "Future Signif. Lower"),
+         sig = if_else(p_val > 0.05, "No Signif. Difference", sig),
+         sig = factor(sig, levels = c("No Signif. Difference",
+                                      " ",
+                                      "Future Signif. Lower", 
+                                      "Future Signif. Higher")),
+         mo = factor(mo, levels = month.abb),
+         dsrc = factor("CM3", levels = c("CM3", "CCSM4"))) %>%
+  select(stid, sig, mo, dsrc)
+
+results_df <- ccsm4_ttest %>% 
+  left_join(stations, by = "stid") %>%
+  mutate(sig = if_else(p_val <= 0.05 & mean_x < mean_y, 
+                       "Future Signif. Higher", 
+                       "Future Signif. Lower"),
+         sig = if_else(p_val > 0.05, "No Signif. Difference", sig),
+         sig = factor(sig, levels = c("No Signif. Difference",
+                                      " ",
+                                      "Future Signif. Lower", 
+                                      "Future Signif. Higher")),
+         mo = factor(mo, levels = month.abb),
+         dsrc = factor("CCSM4", levels = c("CM3", "CCSM4"))) %>%
+  select(stid, sig, mo, dsrc) %>%
+  bind_rows(cm3_sig) %>%
+  left_join(stid_names, by = "stid") %>%
+  select(pub_name, sig, mo, dsrc)
+
+# function to increase vertical spacing between legend keys
+# @clauswilke
+draw_key_polygon3 <- function(data, params, size) {
+  lwd <- min(data$size, min(size) / 4)
+  
+  grid::rectGrob(
+    width = grid::unit(0.6, "npc"),
+    height = grid::unit(0.6, "npc"),
+    gp = grid::gpar(
+      col = data$colour,
+      fill = alpha(data$fill, data$alpha),
+      lty = data$linetype,
+      lwd = lwd * .pt,
+      linejoin = "mitre"
+    ))
+}
+
+# register new key drawing function, 
+# the effect is global & persistent throughout the R session
+GeomTile$draw_key = draw_key_polygon3
+
+p <- ggplot(results_df, aes(x = mo, y = reorder(pub_name, desc(pub_name)))) +
+  geom_tile(aes(fill = sig, color = sig)) + 
+  scale_fill_manual(values = c("White", "white", "#46ACC8", "#E58601"),
+                    drop = FALSE) + 
+  scale_color_manual(values = c("grey", "white", "grey", "grey"),
+                     drop = FALSE) +
+  scale_x_discrete(breaks = c("Jan", "Mar", "May", "Jul", "Sep", "Nov")) +
+  ylab("Location") + xlab("Month") + 
+  #labs(fill = "Significance\nat \u03B1 = 0.05") +
+  theme_bw() + 
+  theme(legend.direction = "vertical",
+        legend.key.size = unit(0.6, "line"),
+        legend.title = element_blank(),
+        legend.margin = margin(c(0, 1, 0, 1)),
+        legend.text = element_text(margin = margin(l = 3, r = 3),
+                                   size = 8),
+        axis.text = element_text(size = 7, color = "black"),
+        axis.title = element_text(size = 8), 
+        strip.background = element_blank(),
+        strip.text = element_text(margin = margin(c(1, 0, 1, 0))),
+        legend.key = element_rect(color = NA, fill = NA),
+        legend.justification = c(0, 0),
+        legend.position = "bottom") +
+  guides(fill = guide_legend(ncol = 2)) +
+  facet_wrap(~dsrc)
+
+plot_path <- file.path(figdir, "wrf_clim_ttest_signif_heatmap.pdf")
+ggsave(plot_path, p, device = "pdf", height = 7, width = 3.54)
+
+#------------------------------------------------------------------------------

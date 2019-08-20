@@ -16,23 +16,18 @@
 #-- Setup ---------------------------------------------------------------------
 library(dplyr)
 library(ggplot2)
-library(openair)
 library(lubridate)
 
 # Work directory
 workdir <- getwd()
 datadir <- file.path(workdir, "data")
 fig_dir <- file.path(workdir, "figures")
-asos_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
+asos_dir <- file.path(datadir, "AK_ASOS_stations_adj")
 # website examples directory
-examples_dir <- file.path(fig_dir, "website_examples")
-# Monthly speeds
-monthly_path <- file.path(datadir, 
-                          "AK_ASOS_monthly_select_adj_19800101_to_20150101.Rds")
-asos_monthly <- readRDS(monthly_path)
+ex_dir <- file.path(fig_dir, "website_examples")
+
 # select stations meta
-select_stations_path <- file.path(datadir, "AK_ASOS_select_stations.Rds")
-select_stations <- readRDS(select_stations_path)
+select_stations <- readRDS(file.path(datadir, "AK_ASOS_select_stations.Rds"))
 stids <- select_stations$stid
 
 #------------------------------------------------------------------------------
@@ -40,77 +35,77 @@ stids <- select_stations$stid
 #-- Wind Roses ----------------------------------------------------------------
 library(openair)
 # id 20 is Fairbanks
-{id_1 <- 20
-asos_station_path <- file.path(asos_adj_dir, paste0(stids[id_1], ".Rds"))
-asos_station <- readRDS(asos_station_path)
-save_path <- file.path(examples_dir, paste0(stids[id_1], "_windrose.png"))
-png(save_path, width = 2500, height = 2500, res = 300)
-windRose(asos_station, "sped_adj", "drct", 
-         paddle = FALSE, breaks = c(0, 4, 8, 12, 16, 20),
-         angle = 10, type = "month", grid.line = 2,
-         key.header = paste0(stids[id_1]),
-         key.footer = "mph")
-dev.off()}
-
-# id 5 is barrow
-{id_2 <- 5
-asos_station_path <- file.path(asos_adj_dir, paste0(stids[id_2], ".Rds"))
-asos_station <- readRDS(asos_station_path)
-save_path <- file.path(examples_dir, paste0(stids[id_2], "_windrose.png"))
-png(save_path, width = 2500, height = 2500, res = 300)
-windRose(asos_station, "sped_adj", "drct", 
-         paddle = FALSE, breaks = c(0, 6, 10, 14, 18, 22),
-         angle = 10, type = "month", grid.line = 4,
-         key.header = paste0(stids[id_2]),
-         key.footer = "mph")
-dev.off()}
+saveWindRoses <- function(stid, asos_dir, ex_dir){
+  require(openair)
+  
+  asos <- readRDS(file.path(asos_dir, paste0(stid, ".Rds")))
+  save_path <- file.path(ex_dir, paste0(stid, "_windrose.png"))
+  png(save_path, width = 2500, height = 2500, res = 300)
+  #b <- round((max(asos$sped_adj)*0.57)/5)
+  #b <- round(quantile(asos$sped_adj, seq(0, 1, by = 0.01))[100]/4)
+  #sv <- summary(asos$sped_adj)
+  sort(table())
+  gl <- 2 + round((summary(asos$sped_adj)[3] - 4)/2)
+  windRose(asos, "sped_adj", "drct", 
+           paddle = FALSE, breaks = c(0, 4, 8, 12, 16, 20),
+           angle = 10, type = "month", #grid.line = gl,
+           key.header = paste0(stid),
+           key.footer = "mph")
+  dev.off()
+}
+lapply(stids1, saveWindRoses, asos_dir, ex_dir)
 
 #------------------------------------------------------------------------------
 
 #-- Bar plots -----------------------------------------------------------------
+# Monthly speeds
+monthly_path <- file.path(datadir, 
+                          "AK_ASOS_monthly_select_adj_19800101_to_20150101.Rds")
+asos_monthly <- readRDS(monthly_path)
 
-barfill <- "gold1"
-barlines <- "goldenrod2"
-# Fairbanks
-{id_1 <- 20
-asos_station <- asos_monthly %>%
-  filter(stid == stids[id_1]) %>%
-  mutate(month = as.factor(month(ym_date))) %>%
-  group_by(month) %>%
-  summarise(sd_sped = sd(avg_sped),
-            avg_sped = mean(avg_sped))
-levels(asos_station$month) <- month.abb[as.numeric(levels(asos_station$month))]
 
-p1 <- ggplot(asos_station, aes(x = month, y = avg_sped)) +
-  geom_errorbar(aes(ymin = avg_sped, ymax = avg_sped + sd_sped, width = 0.2)) +
-  geom_bar(stat = "identity", colour = barlines, fill = barfill) +
-  ggtitle(stids[id_1], subtitle = "Fairbanks, AK") + 
-  xlab("Month") + ylab("Average Wind Speed (mph)") +
-  theme_bw() +
-  theme(axis.text = element_text(size = 12),
-        axis.title = element_text(size = 14))
-save_path <- file.path(examples_dir, paste0(stids[id_1], "_mo_speeds.png"))
-ggsave(save_path, p1)}
 
-# Barrow
-{id_2 <- 5
-asos_station <- asos_monthly %>%
-  filter(stid == stids[id_2]) %>%
-  mutate(month = as.factor(month(ym_date))) %>%
-  group_by(month) %>%
-  summarise(sd_sped = sd(avg_sped),
-            avg_sped = mean(avg_sped))
-levels(asos_station$month) <- month.abb[as.numeric(levels(asos_station$month))]
-
-p1 <- ggplot(asos_station, aes(x = month, y = avg_sped)) +
-  geom_errorbar(aes(ymin = avg_sped, ymax = avg_sped + sd_sped, width = 0.2)) +
-  geom_bar(stat = "identity", colour = barlines, fill = barfill) +
-  ggtitle(stids[id_2], subtitle = "Utqiagvik, AK") + 
-  xlab("Month") + ylab("Average Wind Speed (mph)") +
-  theme_bw() +
-  theme(axis.text = element_text(size = 12),
-        axis.title = element_text(size = 14))
-save_path <- file.path(examples_dir, paste0(stids[id_2], "_mo_speeds.png"))
-ggsave(save_path, p1)}
+saveMonthlyBarplots <- function(stid1, asos_monthly, ex_dir){
+  
+  asos_station <- asos_monthly %>%
+    filter(stid == stid1) %>%
+    mutate(month = as.factor(month(ym_date))) %>%
+    group_by(month) %>%
+    summarise(avg_sped = mean(avg_sped))
+  levels(asos_station$month) <- month.abb[as.numeric(levels(asos_station$month))]
+  
+  barfill <- "gold1"
+  barlines <- "goldenrod2"
+  p1 <- ggplot(asos_station, aes(x = month, y = avg_sped)) +
+    #geom_errorbar(aes(ymin = avg_sped, ymax = avg_sped + sd_sped, width = 0.2)) +
+    geom_bar(stat = "identity", colour = barlines, fill = barfill) +
+    ggtitle(stid1) + 
+    xlab("Month") + ylab("Average Wind Speed (mph)") +
+    theme_bw() +
+    theme(axis.text = element_text(size = 12),
+          axis.title = element_text(size = 14))
+  save_path <- file.path(ex_dir, paste0(stid1, "_mo_speeds.png"))
+  ggsave(save_path, p1)
+}
+lapply(stids, saveMonthlyBarplots, asos_monthly, ex_dir)
 
 #------------------------------------------------------------------------------
+
+
+
+
+
+pafb_jan <- pafb %>%
+  filter(format(t_round, "%m") == "01")
+  
+pafb_jan %>%
+  filter(drct == 0) %>%
+  ggplot(aes(sped_adj)) + 
+  geom_histogram()
+
+pafb_jan %>%
+  filter(sped == 0) %>%
+  group_by(drct) %>%
+  summarise(count = n())
+
+pafb_jan$drct[pafb_jan$sped_adj == 0] <- NA

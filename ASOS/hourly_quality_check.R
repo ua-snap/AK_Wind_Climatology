@@ -84,7 +84,7 @@ for(i in 1:n_stids){
 }
 # no longer need full asos df for remainder of script
 rm(good_asos)
-gc()
+
 #------------------------------------------------------------------------------
 
 #-- Quality Assessment & Save Rds ---------------------------------------------

@@ -3,6 +3,7 @@
 # Compare model output means between periods by site and month
 #
 # Output files:
+#   /data/
 #   /figures/climatology_comparison/cm3_ttest_heatmap.png
 #   /figures/climatology_comparison/ccsm4_ttest_heatmap.png
 #   /figures/climatology_comparison/cm3_boxplots_wind_event_subset.png
@@ -60,6 +61,12 @@ ccsm4f_monthly$clim <- factor("2065-2100",
 ccsm4_monthly <- bind_rows(ccsm4h_monthly, ccsm4f_monthly) %>%
   mutate(mo = factor(month.abb[as.numeric(format(ym_date, "%m"))],
                      levels = month.abb))
+
+# save these data for uses
+cm3_path <- file.path(datadir, "CM3_clim_monthly.Rds")
+saveRDS(cm3_monthly, cm3_path)
+ccsm4_path <- file.path(datadir, "CCSM4_clim_monthly.Rds")
+saveRDS(ccsm4_monthly, ccsm4_path)
 
 #------------------------------------------------------------------------------
 
