@@ -11,7 +11,7 @@ library(lubridate)
 
 workdir <- getwd()
 datadir <- file.path(workdir, "data")
-asos_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
+asos_dir <- file.path(datadir, "AK_ASOS_stations_adj")
 figdir <- file.path(workdir, "figures")
 
 # WRF directories
@@ -40,9 +40,29 @@ asos_select <- asos_daily %>% filter(date >= start_date &
                                      date <= end_date)
 
 # changepoints
-asos_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
-cpts_path <- file.path(asos_adj_dir, "cpts_df.Rds")
+cpts_path <- file.path(asos_dir, "cpts_df.Rds")
 cpts_df <- readRDS(cpts_path)
+
+#------------------------------------------------------------------------------
+
+#-- Count Check for Bruce -----------------------------------------------------
+# check counts of observations with wind speed and direction > 0 
+# write a function that reads in a subset of stations into one data frame
+read_ASOS <- function(stids){
+  require(dplyr)
+  
+  dfs <- lapply(stids, function(x){
+    asos_dir <- file.path(getwd(), "data", "AK_ASOS_stations_adj")
+    df <- readRDS(file.path(asos_dir, paste0(x, ".Rds")))
+    df
+  })
+  bind_rows(dfs)
+}
+stids <- c("PASC", "PAEN", "PAFB", "PAIM", "PAIL", "PADK")
+asos <- read_ASOS(stids) %>%
+  filter(drct > 0 & sped_adj > 0) %>%
+  group_by(stid) %>%
+  summarise(count = n())
 
 #------------------------------------------------------------------------------
 
@@ -147,7 +167,7 @@ library(lubridate)
 library(ggplot2)
 
 era <- readRDS(file.path(era_adj_dir, "PAOM_era_adj.Rds"))
-asos <- readRDS(file.path(asos_adj_dir, "PAOM.Rds"))
+asos <- readRDS(file.path(asos_dir, "PAOM.Rds"))
 
 start <- ymd_hms("2011-11-08 20:00:00")
 end <- ymd_hms("2011-11-10 23:59:59")
@@ -178,11 +198,11 @@ library(qmap)
 
 workdir <- getwd()
 datadir <- file.path(workdir, "data")
-asos_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
-cpts_df <- readRDS(file.path(asos_adj_dir, "cpts_df.Rds"))
+asos_dir <- file.path(datadir, "AK_ASOS_stations_adj")
+cpts_df <- readRDS(file.path(asos_dir, "cpts_df.Rds"))
 # PALU has m1 < m2, PABT has m1 > m2
-pabt <- readRDS(file.path(asos_adj_dir, "PABT.Rds"))
-palu <- readRDS(file.path(asos_adj_dir, "PALU.Rds"))
+pabt <- readRDS(file.path(asos_dir, "PABT.Rds"))
+palu <- readRDS(file.path(asos_dir, "PALU.Rds"))
 # break into periods
 pabt_sim <- pabt$sped[pabt$period == 1]
 pabt_obs <- pabt$sped[pabt$period == 2]
@@ -372,7 +392,7 @@ p4 <- grid.arrange(arrangeGrob(p1 + theme(legend.position="none"),
 
 #-- geom_smooth ---------------------------------------------------------------
 # having trouble getting geom_smooth to show on these data
-asos_path <- file.path(asos_adj_dir, "PAFA_hour.Rds")
+asos_path <- file.path(asos_dir, "PAFA_hour.Rds")
 asos_station <- readRDS(asos_path)
 asos_station <- asos_station %>%
   mutate(year = year(date), 
@@ -400,7 +420,7 @@ library(openair)
 library(circular)
 
 # read fairbanks station data in
-asos_station_path <- file.path(asos_adj_dir, "PAFA_hour.Rds")
+asos_station_path <- file.path(asos_dir, "PAFA_hour.Rds")
 asos_station <- readRDS(asos_station_path)
 asos_station$drct <- as.numeric(asos_station$drct)
 # openair package (blocky and junk)
