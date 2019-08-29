@@ -15,7 +15,7 @@
 #   /figures/manuscript/AK_ASOS_station_locations.pdf
 #   /figures/manuscript/asos_discont_adj_ex.pdf
 #   /figures/manuscript/ERA_CM3_ECDFs.pdf
-#   /figures/manuscript/
+#   /figures/manuscript/wind_event_ASOS_ERA.pdf
 #   /figures/manuscript/wrf_clim_ttest_signif_heatmap.pdf
 
 
@@ -406,7 +406,7 @@ p_main <- arrangeGrob(p_pabr, p_paom, ncol = 2,
 
 p <- arrangeGrob(p_main, p1[[2]], nrow = 2, heights = c(30, 1))
 
-fig_path <- file.path(figdir, "wind_event_asos_era.pdf")
+fig_path <- file.path(figdir, "wind_event_ASOS_ERA.pdf")
 ggsave(fig_path, p, dev = "pdf", width = 7.25, height = 6)
 
 #------------------------------------------------------------------------------
