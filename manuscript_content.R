@@ -13,7 +13,10 @@
 #
 # Output files:
 #   /figures/manuscript/AK_ASOS_station_locations.pdf
-#   /figured/manuscript/asos_discont_adj_ex.pdf
+#   /figures/manuscript/asos_discont_adj_ex.pdf
+#   /figures/manuscript/ERA_CM3_ECDFs.pdf
+#   /figures/manuscript/
+#   /figures/manuscript/wrf_clim_ttest_signif_heatmap.pdf
 
 
 
@@ -21,7 +24,6 @@
 workdir <- getwd()
 datadir <- file.path(workdir, "data")
 figdir <- file.path(workdir, "figures", "manuscript")
-code_dir <- file.path(workdir, "code")
 
 #------------------------------------------------------------------------------
 
@@ -306,11 +308,111 @@ ggsave(fig_path, p, dev = "pdf", width = 3.54, height = 4)
 
 #-- High Wind Events ----------------------------------------------------------
 # Need John to choose a couple
+# John suggests 6-panel figure, with 3 examples from Barrow on left and 3
+#   from Nome on right
+
+library(lubridate)
+library(ggplot2)
+library(tidyr)
+library(gridExtra)
+library(grid)
+
+# individual event plotting function
+plotEvent <- function(t_start, asos, era, retkey = FALSE){
+  require(dplyr)
+  require(ggplot2)
+  
+  start <- t_start - hours(48)
+  end <- start + hours(192)
+  
+  asos_event <- asos %>% 
+    filter(t_round >= start & t_round <= end) %>%
+    select(t_round, sped_adj) %>% 
+    rename(ts = t_round, ASOS = sped_adj)
+  
+  event_df <- era %>% 
+    filter(ts >= start & ts <= end) %>%
+    select(ts, sped_adj) %>%
+    rename(ERA = sped_adj) %>%
+    left_join(asos_event, "ts") %>%
+    gather("Source", "sped", -ts)
+  
+  p <- ggplot(event_df, aes(ts, sped, color = Source)) + 
+    geom_line(size = 0.75) +
+    scale_color_manual(values = c("#E69F00", "#56B4E9")) +
+    theme_bw() +
+    ggtitle(year(t_start)) +
+    theme(axis.title = element_blank(),
+          plot.title = element_text(size = 10,
+                                    margin = margin(0, 0, 0, 0)),
+          legend.position = "bottom")
+  
+  p1 <- p + theme(legend.position = "none")
+  
+  if(retkey){
+    tmp <- ggplot_gtable(ggplot_build(p))
+    leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+    mylegend <- tmp$grobs[[leg]]
+    return(list(p1, mylegend))
+  }else{return(p1)}
+  
+}
+
+# Barrow
+asos_dir <- file.path(datadir, "AK_ASOS_stations_adj")
+era_dir <- file.path(datadir, "ERA_stations_adj")
+pabr_era <- readRDS(file.path(era_dir, "PABR_era_adj.Rds"))
+pabr_asos <- readRDS(file.path(asos_dir, "PABR.Rds"))
+
+pabr_start <- ymd_hms(c("1989-02-25 13:00:00",
+                        "1994-02-01 05:00:00",
+                        "2000-11-10 06:00:00"))
+
+p1 <- plotEvent(pabr_start[1], pabr_asos, pabr_era, retkey = TRUE)
+p2 <- plotEvent(pabr_start[2], pabr_asos, pabr_era)
+p3 <- plotEvent(pabr_start[3], pabr_asos, pabr_era)
+
+# Nome
+paom_era <- readRDS(file.path(era_dir, "PAOM_era_adj.Rds"))
+paom_asos <- readRDS(file.path(asos_dir, "PAOM.Rds"))
+
+paom_start <- ymd_hms(c("1998-04-09 22:00:00",
+                        "2006-02-18 21:00:00",
+                        "2011-11-08 21:00:00"))
+
+p4 <- plotEvent(paom_start[1], paom_asos, paom_era)
+p5 <- plotEvent(paom_start[2], paom_asos, paom_era)
+p6 <- plotEvent(paom_start[3], paom_asos, paom_era)
+
+# combine plots
+p_pabr <- arrangeGrob(p1[[1]], p2, p3, nrow = 3,
+                      top = textGrob("Utqiatvik (Barrow)",
+                                     x = unit(0.05, "npc"),
+                                     y = unit(0.60, "npc"), 
+                                     just = c("left", "top")))
+p_paom <- arrangeGrob(p4, p5, p6, nrow = 3,
+                      top = textGrob("Nome",
+                                     x = unit(0.05, "npc"),
+                                     y = unit(0.60, "npc"), 
+                                     just = c("left", "top")))
+p_main <- arrangeGrob(p_pabr, p_paom, ncol = 2,
+                      bottom = textGrob("Date",
+                                        x = unit(0.5, "npc"),
+                                        vjust = -0.6,
+                                        gp = gpar(fontsize = 12)),
+                      left = textGrob("Wind Speed (mph)",
+                                      gp = gpar(fontsize = 12),
+                                      rot = 90, hjust = 0.4))
+
+p <- arrangeGrob(p_main, p1[[2]], nrow = 2, heights = c(30, 1))
+
+fig_path <- file.path(figdir, "wind_event_asos_era.pdf")
+ggsave(fig_path, p, dev = "pdf", width = 7.25, height = 6)
 
 #------------------------------------------------------------------------------
 
 #-- t-test heatmap ----------------------------------------------------------
-source(file.path(code_dir, "helpers.R"))
+source(file.path(workdir, "helpers.R"))
 
 stid_names <- read.csv(file.path(datadir, "AK_ASOS_names_key.csv"),
                        stringsAsFactors = FALSE)
