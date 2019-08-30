@@ -517,3 +517,86 @@ plot_path <- file.path(figdir, "wrf_clim_ttest_signif_heatmap.pdf")
 ggsave(plot_path, p, device = "pdf", height = 7, width = 3.54)
 
 #------------------------------------------------------------------------------
+
+#-- Wind Roses ----------------------------------------------------------------
+library(dplyr)
+library(ggplot2)
+library(openair)
+library(gridExtra)
+library(grid)
+
+source(file.path(workdir, "windRose.R"))
+
+# id 20 is Fairbanks
+saveWindRoses <- function(stid, asos_dir){
+  gl <- as.numeric(strsplit(stid, " ")[[1]][2])
+  stid <- strsplit(stid, " ")[[1]][1]
+  
+  asos <- readRDS(file.path(asos_dir, paste0(stid, ".Rds")))
+  calm <- nrow(asos[asos$sped_adj == 0, ])/nrow(asos)
+  asos$sped_adj[asos$drct == 0] <- 0
+  
+  p <- windRose(asos, "sped_adj", "drct", 
+           paddle = FALSE, breaks = c(0, 6, 10, 14, 18, 22),
+           angle = 10, grid.line = gl, calm = calm)
+  return(p$plot)
+}
+
+stids <- c("PANC 2", "PABT 1", "PAFA 1", "PAJN 2",
+           "PADK 2", "PAOM 2", "PASN 1", "PABR 2")
+asos_dir <- file.path(datadir, "AK_ASOS_stations_adj")
+roses <- lapply(stids, saveWindRoses, asos_dir )
+
+# plot for custom legend
+speeds <- c("0 - 6", "6 - 10", "10 - 14", "14 - 18", "18 - 22", "22 +")
+dfleg <- data.frame(x = 1:6, mph = factor(speeds, levels = speeds))
+pleg <- ggplot(dfleg, aes(x, x)) + 
+  geom_tile(aes(fill = mph)) +
+  scale_fill_manual(guide = guide_legend(
+    direction = "vertical",
+    title.position = "top",
+    label.position = "right",
+    ncol = 2
+  ),
+  values = openColours(n = 6)) +
+  theme(legend.position = "right",
+        legend.title = element_text(family = "serif"),
+        legend.text = element_text(family = "serif"),
+        legend.margin = margin(c(0, 0, 0, 0)))
+tmp <- ggplot_gtable(ggplot_build(pleg))
+leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+mylegend <- tmp$grobs[[leg]]
+
+# textGrobs for titles
+tg1 <- textGrob("Anchorage", gp = gpar(fontfamily = "serif"), 
+                x = unit(0.3, "npc"), y = unit(-1, "npc"))
+tg2 <- textGrob("Bettles", gp = gpar(fontfamily = "serif"), 
+                x = unit(0.25, "npc"), y = unit(-1, "npc"))
+tg3 <- textGrob("Fairbanks", gp = gpar(fontfamily = "serif"), 
+                x = unit(0.3, "npc"), y = unit(-1, "npc"))
+tg4 <- textGrob("Juneau", gp = gpar(fontfamily = "serif"), 
+                x = unit(0.25, "npc"), y = unit(-1, "npc"))
+tg5 <- textGrob("Kodiak", gp = gpar(fontfamily = "serif"), 
+                x = unit(0.25, "npc"), y = unit(-1, "npc"))
+tg6 <- textGrob("Nome", gp = gpar(fontfamily = "serif"), 
+                x = unit(0.25, "npc"), y = unit(-1, "npc"))
+tg7 <- textGrob("Saint Paul", gp = gpar(fontfamily = "serif"), 
+                x = unit(0.3, "npc"), y = unit(-1, "npc"))
+tg8 <- textGrob("Utqiatvik (Barrow)", gp = gpar(fontfamily = "serif"), 
+                x = unit(0.4, "npc"), y = unit(-1, "npc"))
+tg9 <- textGrob(" ", just = "left")
+
+r1 <- arrangeGrob(tg1, tg2, tg3, 
+                  roses[[1]], roses[[2]], roses[[3]], nrow = 2, ncol = 3, 
+                  heights = c(1, 40))
+r2 <- arrangeGrob(tg4, tg5, tg6, 
+                  roses[[4]], roses[[5]], roses[[6]], nrow = 2, ncol = 3, 
+                  heights = c(1, 40))
+r3 <- arrangeGrob(tg7, tg8, tg9, 
+                  roses[[7]], roses[[8]], mylegend, nrow = 2, ncol = 3, 
+                  heights = c(1, 40))
+
+p <- arrangeGrob(r1, r2, r3, nrow = 3)
+
+ggsave(file.path(figdir, "annual_wind_roses.pdf"), p, width = 7.48, height = 8)
+#------------------------------------------------------------------------------
