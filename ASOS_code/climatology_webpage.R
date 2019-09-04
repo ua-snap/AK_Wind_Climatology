@@ -5,11 +5,14 @@
 #
 # Example monthly average barplots
 #
+# Station names for climatology website
+#
 # Output files:
 #   /figures/website_examples/PAFA_windrose.png
 #   /figures/website_examples/PABR_windrose.png
 #   /figures/website_examples/PAFA_mo_speeds.png
 #   /figures/website_examples/PABR_mo_speeds.png
+#   /data/AK_comm_winds_sta_names.csv
 
 
 
@@ -36,7 +39,7 @@ stids <- select_stations$stid
 library(openair)
 # id 20 is Fairbanks
 saveWindRoses <- function(stid, asos_dir, ex_dir){
-  require(openair)
+  library(openair)
   
   asos <- readRDS(file.path(asos_dir, paste0(stid, ".Rds")))
   save_path <- file.path(ex_dir, paste0(stid, "_windrose.png"))
@@ -91,21 +94,26 @@ lapply(stids, saveMonthlyBarplots, asos_monthly, ex_dir)
 
 #------------------------------------------------------------------------------
 
+#-- Station Names -------------------------------------------------------------
+library(dyplr)
+library(data.table)
+select_meta <- fread(file.path(datadir, "AK_ASOS_select_stations.csv"))
+# names used in manuscript figs (currently)
+pub_names <- fread(file.path(datadir, "AK_ASOS_names_key.csv"))
 
+temp <- select_meta[pub_names, on = "stid"]
+setnames(temp, old = c("station_name", "pub_name"), 
+         new = c("ASOS Name", "New Name"))
 
+temp[`New Name` == "Merrill Field", `New Name` := "Anchorage Merrill Field"]
+temp[`New Name` == "Barter Island", `New Name` := "Kaktovik/Barter Island"]
 
+# for sharing proposed names only
+#fwrite(temp[, `ASOS Name`, `New Name`], 
+#       file.path(datadir, "new_ASOS_station_names.csv"))
+new_select_stations <- temp[, c("stid", "New Name", "lat", "lon")]
+setnames(new_select_stations, old = "New Name", new = "station_name")
+fwrite(new_select_stations, 
+       file.path(datadir, "AK_ASOS_select_stations_new_names.csv"))
 
-pafb_jan <- pafb %>%
-  filter(format(t_round, "%m") == "01")
-  
-pafb_jan %>%
-  filter(drct == 0) %>%
-  ggplot(aes(sped_adj)) + 
-  geom_histogram()
-
-pafb_jan %>%
-  filter(sped == 0) %>%
-  group_by(drct) %>%
-  summarise(count = n())
-
-pafb_jan$drct[pafb_jan$sped_adj == 0] <- NA
+#------------------------------------------------------------------------------
