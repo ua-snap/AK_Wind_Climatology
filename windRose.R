@@ -1148,6 +1148,7 @@ binData <- function(mydata, bin = "nox", uncer = "no2", n = 40, interval = NA,
 #-- checkPrep -----------------------------------------------------------------
 checkPrep <- function(mydata, Names, type, remove.calm = TRUE, remove.neg = TRUE,
                       strip.white = TRUE, wd = "wd") {
+  library(lubridate)
   
   ## deal with conditioning variable if present, if user-defined, must exist in data
   ## pre-defined types
@@ -2311,7 +2312,7 @@ windRose <- function(mydata, ws = "ws", wd = "wd", ws2 = NA, wd2 = NA,
                      key = TRUE, dig.lab = 5, statistic = "prop.count",
                      pollutant = NULL, annotate = TRUE, angle.scale = 315, border = NA,
                      ...) {
-  require(lattice)
+  library(lattice)
   ## these are pre-defined type that need a field "date"; used by cutData
   dateTypes <- c(
     "year", "hour", "month", "season", "weekday", "weekend",
@@ -2921,10 +2922,10 @@ windRose <- function(mydata, ws = "ws", wd = "wd", ws2 = NA, wd2 = NA,
   ## output ################################################################################
   
   if (length(type) == 1) {
-    plot(plt)
+    plot(plt, mar = c(0, 0, 0, 0))
   } else {
     plt <- useOuterStrips(plt, strip = strip, strip.left = strip.left)
-    plot(plt)
+    plot(plt, mar = c(0, 0, 0, 0))
   }
   
   
