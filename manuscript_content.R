@@ -186,10 +186,10 @@ library(lubridate)
 # ggECDF_compare modified for manuscript
 ggECDF_compare <- function(obs, sim, sim_adj, p_tag = " ",
                            sim_lab, obs_lab, cols = 1){
-  require(gridExtra)
-  require(ggplot2)
-  require(grid)
-  require(wesanderson)
+  library(gridExtra)
+  library(ggplot2)
+  library(grid)
+  library(wesanderson)
   
   df1 <- data.frame(sped = c(sim, obs),
                     quality = c(rep("1", length(sim)),
@@ -319,8 +319,8 @@ library(grid)
 
 # individual event plotting function
 plotEvent <- function(t_start, asos, era, retkey = FALSE){
-  require(dplyr)
-  require(ggplot2)
+  library(dplyr)
+  library(ggplot2)
   
   start <- t_start - hours(48)
   end <- start + hours(192)
@@ -526,7 +526,9 @@ library(gridExtra)
 library(grid)
 
 source(file.path(workdir, "windRose.R"))
+asos_dir <- file.path(datadir, "AK_ASOS_stations_adj")
 
+# Annual Roses
 # id 20 is Fairbanks
 saveWindRoses <- function(stid, asos_dir){
   gl <- as.numeric(strsplit(stid, " ")[[1]][2])
@@ -544,7 +546,6 @@ saveWindRoses <- function(stid, asos_dir){
 
 stids <- c("PANC 2", "PABT 1", "PAFA 1", "PAJN 2",
            "PADK 2", "PAOM 2", "PASN 1", "PABR 2")
-asos_dir <- file.path(datadir, "AK_ASOS_stations_adj")
 roses <- lapply(stids, saveWindRoses, asos_dir )
 
 # plot for custom legend
@@ -599,4 +600,56 @@ r3 <- arrangeGrob(tg7, tg8, tg9,
 p <- arrangeGrob(r1, r2, r3, nrow = 3)
 
 ggsave(file.path(figdir, "annual_wind_roses.pdf"), p, width = 7.48, height = 8)
+
+# Monthly Wind Roses
+saveMonthlyRoses <- function(stid, asos_dir){
+  library(lubridate)
+  
+  gl <- as.numeric(strsplit(stid, " ")[[1]][2])
+  #st_name <- strsplit(stid, " ")[[1]][3]
+  #st_name <- gsub("_", " ", st_name)
+  stid <- strsplit(stid, " ")[[1]][1]
+  
+  asos <- readRDS(file.path(asos_dir, paste0(stid, ".Rds"))) %>%
+    mutate(mo = month(t_round))
+  
+  lattice.options(
+    layout.heights=list(bottom.padding=list(x=-0.75), top.padding=list(x=-0.75)),
+    layout.widths=list(left.padding=list(x=-0.75), right.padding=list(x=-0.75))
+  )
+  monthlyRose <- function(mo.no, df, gl){
+    df <- df %>% filter(mo == mo.no)
+    
+    calm <- nrow(df[df$sped_adj == 0, ])/nrow(df)
+    df$sped_adj[df$drct == 0] <- 0
+    
+    p <- windRose(df, "sped_adj", "drct", 
+                  paddle = FALSE, breaks = c(0, 6, 10, 14, 18, 22),
+                  angle = 10, grid.line = gl, calm = calm)
+    
+    tg <- textGrob(month.name[mo.no], gp = gpar(fontfamily = "serif"), 
+                   x = unit(0.5, "npc"), y = unit(0.3, "npc"))
+    p <- arrangeGrob(p$plot, top = tg)
+    
+    return(p)
+  }
+  
+  rs <- lapply(1:12, monthlyRose, asos, gl)
+  
+  arrangeGrob(grobs = rs, nrow = 4)
+}
+
+# Barrow & Nome
+stids <- c("PAOM 2 Nome", "PABR 2 Utqiatvik_(Barrow)")
+roses <- lapply(stids, saveMonthlyRoses, asos_dir)
+save_path <- file.path(figdir, "monthly_wind_rose_")
+ggsave(paste0(save_path, "Nome.pdf"), roses[[1]], width = 7, height = 9)
+ggsave(paste0(save_path, "Barrow.pdf"), roses[[2]], width = 7, height = 9)
+
+#------------------------------------------------------------------------------
+
+#-- Monthly Bar Plots ---------------------------------------------------------
+
+
+
 #------------------------------------------------------------------------------
