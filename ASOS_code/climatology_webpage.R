@@ -66,8 +66,6 @@ monthly_path <- file.path(datadir,
                           "AK_ASOS_monthly_select_adj_19800101_to_20150101.Rds")
 asos_monthly <- readRDS(monthly_path)
 
-
-
 saveMonthlyBarplots <- function(stid1, asos_monthly, ex_dir){
   
   asos_station <- asos_monthly %>%
