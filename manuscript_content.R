@@ -649,7 +649,47 @@ ggsave(paste0(save_path, "Barrow.pdf"), roses[[2]], width = 7, height = 9)
 #------------------------------------------------------------------------------
 
 #-- Monthly Bar Plots ---------------------------------------------------------
+monthly_path <- file.path(
+  datadir, "AK_ASOS_monthly_select_adj_19800101_to_20150101.Rds")
+asos_monthly <- readRDS(monthly_path)
 
+stids <- c("PANC", "PABT", "PAFA", "PAJN",
+           "PADK", "PAOM", "PASN", "PABR")
+sta_names <- c("Anchorage", "Bettles", "Fairbanks", "Juneau", 
+               "Kodiak", "Nome", "Saint Paul", "Utqiatvik (Barrow)")
+names_df <- data.frame(stid = stids, 
+                       sta_name = factor(sta_names), 
+                       stringsAsFactors = FALSE)
 
+asos_temp <- asos_monthly %>%
+  filter(stid %in% stids & ym_date < ymd("2015-01-01")) %>%
+  left_join(names_df, by = "stid") %>%
+  mutate(month = as.factor(month(ym_date))) %>%
+  group_by(sta_name, month) %>%
+  summarise(sd_sped = sd(avg_sped),
+            avg_sped = mean(avg_sped))
+levels(asos_temp$month) <- month.abb[as.numeric(levels(asos_temp$month))]
+
+p <- ggplot(asos_temp, aes(x = month, y = avg_sped)) +
+  geom_errorbar(aes(ymin = avg_sped, 
+                    ymax = avg_sped + sd_sped, 
+                    width = 0.2)) +
+  geom_bar(stat = "identity", colour = barlines, fill = barfill) +
+  facet_wrap(~sta_name, scales = "free_y", nrow = 4) +
+  xlab("Month") + ylab("Avg Wind Speed (mph)") +
+  theme_bw() +
+  theme(axis.text = element_text("serif",
+                                 size = 10,
+                                 color = "black"),
+        axis.title = element_text("serif",
+                                  size = 12),
+        panel.grid = element_blank(),
+        panel.border = element_rect(colour = "black"),
+        strip.background = element_blank(),
+        strip.text = element_text("serif",
+                                  size = 12))  
+
+ggsave(file.path(figdir, "monthly_avg_barplots.pdf"), p, 
+       width = 7.48, height = 9)
 
 #------------------------------------------------------------------------------
