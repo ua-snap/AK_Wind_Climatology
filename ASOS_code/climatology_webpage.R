@@ -215,29 +215,64 @@ max(mo_avg_calc$speed[diffs] - monthly_averages$speed[diffs])
 # calculate wind rose counts
 getRoses <- function(stid, asos_dir){
   breaks <- c(0, 6, 10, 14, 18, 22)
-  labels <- c("0-6", "6-10", "14-18", "18-22", "22+")
+  labels <- c("0-6", "6-10","10-14", "14-18", "18-22")
   
   asos <- readRDS(file.path(asos_dir, paste0(stid, ".Rds"))) %>%
-    mutate(month = month(t_round) - 1,
-           direction_class = as.integer(drct/10))
+    filter(drct != 0 & sped_adj > 0.01) %>%
+    mutate(month = month(t_round),
+           drct = replace(drct, drct == 360, 0))
   
-  temp <- cut(asos$sped_adj, breaks, labels, include.lowest = TRUE)
-  temp[is.na(temp)] <- "22+"
+  spd_cut <- cut(asos$sped_adj, breaks, labels, include.lowest = TRUE)
+  levels(spd_cut) <- c(levels(spd_cut), "22+")
+  spd_cut[is.na(spd_cut)] <- "22+"
   
-  asos$speed_range <- temp
-  poss_df <- expand.grid(stid, 0:35, 0:12, as.factor(labels), 
+  drct_breaks <- seq(-5, 365, by = 10)
+  drct_labs <- c(0:35, 0)
+  drct_cut <- cut(asos$drct, breaks = drct_breaks, labels = drct_labs)
+  asos$direction_class <- as.integer(as.character(drct_cut))
+  
+  asos$speed_range <- spd_cut
+  poss_df <- expand.grid(stid, 0:35, 1:12, as.factor(c(labels, "22+")), 
                          stringsAsFactors = FALSE)
   names(poss_df) <- c("stid", "direction_class", "month", "speed_range")
-  levels(poss_df$speed_range) <- labels
+  levels(poss_df$speed_range) <- c(labels, "22+")
   
-  test <- asos %>%
+  # monthly totals
+  mo_tot <- asos %>%
+    group_by(month, stid) %>%
+    summarise(total = n())
+  # month calcs
+  mo_calc <- asos %>%
     group_by(month, stid, speed_range, direction_class) %>%
-    summarise(count = n(),
-              frequency = n()/nrow(asos)) %>%
+    summarise(count = n()) %>%
+    left_join(mo_tot, by = c("stid", "month")) %>%
+    mutate(frequency = round(count / total * 100, 2)) %>%
     full_join(poss_df, by = c("direction_class", "month", "stid", "speed_range")) %>%
+    mutate(count = replace(count, is.na(count), 0),
+           frequency = replace(frequency, is.na(frequency), 0)) %>%
     select(count, direction_class, frequency, month, stid, speed_range) %>%
-    
     arrange(month, direction_class, speed_range)
+  
+  # Year expand vars
+  yr_exp_df <- expand.grid(stid, 0:35, as.factor(c(labels, "22+")), 
+                           stringsAsFactors = FALSE)
+  names(yr_exp_df) <- c("stid", "direction_class", "speed_range")
+  levels(yr_exp_df$speed_range) <- c(labels, "22+")
+  
+  # yearly totals
+  yr_tot <- nrow(asos)
+  # yearly calcs
+  yr_calc <- asos %>%
+    group_by(stid, speed_range, direction_class) %>%
+    summarise(count = n()) %>%
+    mutate(frequency = round(count / yr_tot * 100, 2)) %>%
+    full_join(yr_exp_df, by = c("direction_class", "stid", "speed_range")) %>%
+    mutate(count = replace(count, is.na(count), 0),
+           frequency = replace(frequency, is.na(frequency), 0)) %>%
+    mutate(month = 0) %>%
+    select(count, direction_class, frequency, month, stid, speed_range)
+  
+  bind_rows(yr_calc, mo_calc)
 }
 
 # calcualte in parallel
@@ -248,16 +283,28 @@ system.time({
     library(parallel)
     library(dplyr)
   })
-  clusterExport(cl, c("stids", "asos_dir", "getMoAvgs"))
-  mo_avg_calc <- bind_rows(parLapply(cl, stids, getMoAvgs, asos_dir))
+  clusterExport(cl, c("stids", "asos_dir", "getRoses"))
+  roses_calc <- bind_rows(parLapply(cl, stids, getRoses, asos_dir))
   stopCluster(cl)
-  mo_avg_calc <- arrange(mo_avg_calc, stid)
+  roses_calc <- roses_calc %>%
+    arrange(stid, month, direction_class, speed_range) %>%
+    mutate(count = as.integer(count))
+})
+
+system.time({
+ 
+  roses_calc <- bind_rows(lapply(stids, getRoses, asos_dir))
+  roses_calc <- arrange(roses_calc, stid, month, direction_class, 
+                        speed_range)
 })
 
 # compare
-monthly_averages <- monthly_averages[order(stid, month, direction_class, speed_range)]
+roses$speed_range <- factor(roses$speed_range, 
+                            levels = c("0-6", "6-10", "10-14", 
+                                       "14-18", "18-22", "22+"))
+roses <- roses[order(stid, month, direction_class, speed_range), ]
 # my calculations
-all.equal(unlist(mo_avg_calc), unlist(monthly_averages))
-diffs <- which(mo_avg_calc$speed != monthly_averages$speed)
-max(mo_avg_calc$speed[diffs] - monthly_averages$speed[diffs])
+all.equal(unlist(roses_calc), unlist(roses))
+diffs <- which(roses_calc$count != roses$count)
+max(abs(roses_calc$count[diffs] - roses$count[diffs]))
 #------------------------------------------------------------------------------
