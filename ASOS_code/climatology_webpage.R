@@ -115,3 +115,149 @@ fwrite(new_select_stations,
        file.path(datadir, "AK_ASOS_select_stations_new_names.csv"))
 
 #------------------------------------------------------------------------------
+
+#-- Website Validation --------------------------------------------------------
+# section for validating the calculations made by Bruce
+library(data.table)
+library(parallel)
+library(dplyr)
+
+accap_dir <- file.path(datadir, "accap_website")
+calms <- fread(file.path(accap_dir, "calms.csv"))[, -c("V1")]
+means <- fread(file.path(accap_dir, "means.csv"))[, -c("V1")]
+monthly_averages <- fread(file.path(accap_dir, "monthly_averages.csv"))[, -c("V1")]
+roses <- fread(file.path(accap_dir, "roses.csv"))[, -c("V1")]
+
+setnames(calms, "sid", "stid")
+setnames(means, "station", "stid")
+setnames(monthly_averages, "sid", "stid")
+setnames(roses, "sid", "stid")
+
+# station ids
+select_stations <- readRDS(file.path(datadir, "AK_ASOS_select_stations.Rds"))
+stids <- select_stations$stid
+
+# compare calms
+# calculate calms and means function
+getCalm <- function(stid, asos_dir){
+  readRDS(file.path(asos_dir, paste0(stid, ".Rds"))) %>%
+    mutate(month = month(date)) %>%
+    group_by(stid, month) %>% 
+    summarise(total = n(),
+              calm = as.integer(sum(if_else(sped_adj == 0, 1, 0))),
+              percent = calm/total,
+              percent = as.numeric(format(round(percent * 100, 1), 
+                                          nsmall = 1)),
+              mean = round(mean(sped_adj), 1),
+              sd = round(sd(sped_adj), 1))
+}
+
+# calcualte in parallel
+system.time({
+  cl <- makeCluster(4)
+  clusterEvalQ(cl, {
+    library(data.table)
+    library(parallel)
+    library(dplyr)
+  })
+  clusterExport(cl, c("stids", "asos_dir", "getCalm"))
+  calc <- bind_rows(parLapply(cl, stids, getCalm, asos_dir))
+  stopCluster(cl)
+  calc <- arrange(calc, stid)
+})
+
+# compare
+calms <- calms[order(stid)]
+calms <- calms[, percent = round(percent, 1)]
+# my calculations
+calms_calc <- calc %>% select(stid, month, total, calm, percent)
+all.equal(unlist(calms_calc), unlist(calms))
+
+# compare means
+# Bruce calcs
+means <- means[order(stid)]
+# my calculations
+means_calc <- calc %>% select(stid, mean, month, sd)
+all.equal(unlist(means_calc), unlist(means))
+
+# compare monthly averages
+# calculate calms and means function
+getMoAvgs <- function(stid, asos_dir){
+  readRDS(file.path(asos_dir, paste0(stid, ".Rds"))) %>%
+    mutate(year = year(t_round),
+           month = month(t_round)) %>%
+    group_by(stid, year, month) %>% 
+    summarise(speed = round(mean(sped_adj), 1))
+}
+
+# calcualte in parallel
+system.time({
+  cl <- makeCluster(4)
+  clusterEvalQ(cl, {
+    library(data.table)
+    library(parallel)
+    library(dplyr)
+  })
+  clusterExport(cl, c("stids", "asos_dir", "getMoAvgs"))
+  mo_avg_calc <- bind_rows(parLapply(cl, stids, getMoAvgs, asos_dir))
+  stopCluster(cl)
+  mo_avg_calc <- arrange(mo_avg_calc, stid)
+})
+
+# compare
+monthly_averages <- monthly_averages[order(stid)]
+# my calculations
+all.equal(unlist(mo_avg_calc), unlist(monthly_averages))
+diffs <- which(mo_avg_calc$speed != monthly_averages$speed)
+max(mo_avg_calc$speed[diffs] - monthly_averages$speed[diffs])
+
+# compare wind roses
+# calculate wind rose counts
+getRoses <- function(stid, asos_dir){
+  breaks <- c(0, 6, 10, 14, 18, 22)
+  labels <- c("0-6", "6-10", "14-18", "18-22", "22+")
+  
+  asos <- readRDS(file.path(asos_dir, paste0(stid, ".Rds"))) %>%
+    mutate(month = month(t_round) - 1,
+           direction_class = as.integer(drct/10))
+  
+  temp <- cut(asos$sped_adj, breaks, labels, include.lowest = TRUE)
+  temp[is.na(temp)] <- "22+"
+  
+  asos$speed_range <- temp
+  poss_df <- expand.grid(stid, 0:35, 0:12, as.factor(labels), 
+                         stringsAsFactors = FALSE)
+  names(poss_df) <- c("stid", "direction_class", "month", "speed_range")
+  levels(poss_df$speed_range) <- labels
+  
+  test <- asos %>%
+    group_by(month, stid, speed_range, direction_class) %>%
+    summarise(count = n(),
+              frequency = n()/nrow(asos)) %>%
+    full_join(poss_df, by = c("direction_class", "month", "stid", "speed_range")) %>%
+    select(count, direction_class, frequency, month, stid, speed_range) %>%
+    
+    arrange(month, direction_class, speed_range)
+}
+
+# calcualte in parallel
+system.time({
+  cl <- makeCluster(4)
+  clusterEvalQ(cl, {
+    library(data.table)
+    library(parallel)
+    library(dplyr)
+  })
+  clusterExport(cl, c("stids", "asos_dir", "getMoAvgs"))
+  mo_avg_calc <- bind_rows(parLapply(cl, stids, getMoAvgs, asos_dir))
+  stopCluster(cl)
+  mo_avg_calc <- arrange(mo_avg_calc, stid)
+})
+
+# compare
+monthly_averages <- monthly_averages[order(stid, month, direction_class, speed_range)]
+# my calculations
+all.equal(unlist(mo_avg_calc), unlist(monthly_averages))
+diffs <- which(mo_avg_calc$speed != monthly_averages$speed)
+max(mo_avg_calc$speed[diffs] - monthly_averages$speed[diffs])
+#------------------------------------------------------------------------------
