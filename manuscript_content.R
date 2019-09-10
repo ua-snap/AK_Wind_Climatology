@@ -549,11 +549,14 @@ ggsave(plot_path, p, device = "pdf", height = 7, width = 3.54)
 #------------------------------------------------------------------------------
 
 #-- Wind Roses ----------------------------------------------------------------
+# Figure 7
+
 library(dplyr)
 library(ggplot2)
 library(openair)
 library(gridExtra)
 library(grid)
+library(lattice)
 
 source(file.path(workdir, "windRose.R"))
 asos_dir <- file.path(datadir, "AK_ASOS_stations_adj")
@@ -669,16 +672,16 @@ saveMonthlyRoses <- function(stid, asos_dir){
   arrangeGrob(grobs = rs, nrow = 4)
 }
 
-# Barrow & Nome
-stids <- c("PAOM 2 Nome", "PABR 2 Utqiatvik_(Barrow)")
+# Anchorage
+stids <- c("PANC 2 Anchorage")
 roses <- lapply(stids, saveMonthlyRoses, asos_dir)
-save_path <- file.path(figdir, "monthly_wind_rose_")
-ggsave(paste0(save_path, "Nome.pdf"), roses[[1]], width = 7, height = 9)
-ggsave(paste0(save_path, "Barrow.pdf"), roses[[2]], width = 7, height = 9)
+ggsave(file.path(figdir, "figure_7.pdf"), roses[[1]], width = 7, height = 9)
 
 #------------------------------------------------------------------------------
 
-#-- Monthly Bar Plots ---------------------------------------------------------
+#-- Fig 6 Monthly Bar Plots ---------------------------------------------------
+# Figure 6
+
 monthly_path <- file.path(
   datadir, "AK_ASOS_monthly_select_adj_19800101_to_20150101.Rds")
 asos_monthly <- readRDS(monthly_path)
@@ -708,26 +711,29 @@ p <- ggplot(asos_temp, aes(x = month, y = avg_sped)) +
                     ymax = avg_sped + sd_sped, 
                     width = 0.2)) +
   geom_bar(stat = "identity", colour = barlines, fill = barfill) +
+  scale_y_continuous(expand = c(0, 0)) +
   facet_wrap(~sta_name, scales = "free_y", nrow = 4) +
   xlab("Month") + ylab("Avg Wind Speed (mph)") +
-  theme_bw() +
+  theme_classic() +
   theme(axis.text = element_text("serif",
                                  size = 10,
                                  color = "black"),
         axis.title = element_text("serif",
                                   size = 12),
-        panel.grid = element_blank(),
-        panel.border = element_rect(colour = "black"),
         strip.background = element_blank(),
         strip.text = element_text("serif",
-                                  size = 12))  
+                                  size = 12)) +
+  annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf) +
+  annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf)
 
-ggsave(file.path(figdir, "monthly_avg_barplots.pdf"), p, 
+ggsave(file.path(figdir, "figure_6.pdf"), p, 
        width = 7.48, height = 9)
 
 #------------------------------------------------------------------------------
 
-#-- Seasonal Coastal HWEs -----------------------------------------------------
+#-- Fig 9 Seasonal Coastal HWEs -----------------------------------------------
+# Figure 9
+
 library(ggplot2)
 
 sites <- c("Kaktovik (13)", "Barrow (51)", "Nome (42)", "St. Paul (17)", 
@@ -757,12 +763,14 @@ p <- ggplot(seas, aes(x = site, y = prop, color = Season, fill = Season)) +
         legend.title = element_text(family = "serif"),
         panel.grid = element_blank())
 
-ggsave(file.path(figdir, "seasonal_hwe_barplot.pdf"), p, 
+ggsave(file.path(figdir, "figure_9.pdf"), p, 
        width = 7.48, height = 3)
 
 #------------------------------------------------------------------------------
 
-#-- HWEs by Period ------------------------------------------------------------
+#-- Fig 10 HWEs by Period -----------------------------------------------------
+# Figure 10
+
 library(ggplot2)
 
 sites <- c("Kaktovik", "Barrow", "Nome", "St. Paul", "Kodiak", "Anchorage", 
@@ -791,12 +799,14 @@ p <- ggplot(hwes, aes(x = site, y = prop, color = Period, fill = Period)) +
         legend.title = element_text(family = "serif"),
         panel.grid = element_blank())
 
-ggsave(file.path(figdir, "period_hwe_barplot.pdf"), p, 
+ggsave(file.path(figdir, "figure_10.pdf"), p, 
        width = 7.48, height = 3)
 
 #------------------------------------------------------------------------------
 
-#-- Model Trends Barplots -----------------------------------------------------
+#-- Fig 12 Model Trends Barplots ----------------------------------------------
+# Figure 12
+
 library(ggplot2)
 
 mods <- c("CM3", "CCSM4")
@@ -814,7 +824,8 @@ barcols <- c("slategray", "wheat3")
 labels <- c(cold = "Cold Season\n(Dec - Mar)", warm = "Warm Season\n(Jun - Sep)")
 
 p <- ggplot(trends, aes(x = mod, y = count, color = Period, fill = Period)) +
-  geom_bar(stat = "identity", position = position_dodge(width = 0.6), width = 0.5) + 
+  geom_bar(stat = "identity", position = position_dodge(width = 0.6), 
+           width = 0.5) + 
   facet_wrap(~season, labeller = labeller(season = labels)) + 
   scale_fill_manual(values = barfill) +
   scale_color_manual(values = barcols) +
@@ -831,7 +842,7 @@ p <- ggplot(trends, aes(x = mod, y = count, color = Period, fill = Period)) +
                                   margin = margin(1, 0, 10, 0)),
         strip.background = element_blank())
 
-ggsave(file.path(figdir, "season_trend_barplot.pdf"), p, 
+ggsave(file.path(figdir, "figure_12.pdf"), p, 
        width = 7.48, height = 3.5)
 
 #------------------------------------------------------------------------------
