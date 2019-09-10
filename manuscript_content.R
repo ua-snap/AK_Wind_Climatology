@@ -700,6 +700,9 @@ asos_temp <- asos_monthly %>%
             avg_sped = mean(avg_sped))
 levels(asos_temp$month) <- month.abb[as.numeric(levels(asos_temp$month))]
 
+barfill <- "gold1"
+barlines <- "goldenrod2"
+
 p <- ggplot(asos_temp, aes(x = month, y = avg_sped)) +
   geom_errorbar(aes(ymin = avg_sped, 
                     ymax = avg_sped + sd_sped, 
@@ -721,5 +724,114 @@ p <- ggplot(asos_temp, aes(x = month, y = avg_sped)) +
 
 ggsave(file.path(figdir, "monthly_avg_barplots.pdf"), p, 
        width = 7.48, height = 9)
+
+#------------------------------------------------------------------------------
+
+#-- Seasonal Coastal HWEs -----------------------------------------------------
+library(ggplot2)
+
+sites <- c("Kaktovik (13)", "Barrow (51)", "Nome (42)", "St. Paul (17)", 
+           "Kodiak (47)", "Anchorage (17)", "Juneau (107)", "Sitka (56)")
+seasons <- c("Wi", "Sp", "Su", "Au")
+
+seas <- data.frame(site = factor(rep(sites, each = 4), levels = sites),
+                   Season = factor(rep(seasons, 8), levels = seasons),
+                   prop = c(85, 0, 0, 15, 39, 18, 0, 43, 50, 10, 5, 35, 82, 18, 
+                            0, 0, 57, 15, 0, 28, 59, 18, 0, 23, 61, 19, 0, 20, 
+                            53, 9, 2, 36))
+
+barfill <- c("cadetblue1", "green3", "gold1", "lightsalmon")
+barcols <- c("cadetblue", "forestgreen", "darkgoldenrod", "lightsalmon3")
+
+p <- ggplot(seas, aes(x = site, y = prop, color = Season, fill = Season)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.8) + 
+  scale_fill_manual(values = barfill) +
+  scale_color_manual(values = barcols) +
+  scale_y_continuous(limits = c(0, 101), expand = c(0, 0)) +
+  xlab("Location") + ylab("Proportion (%)") +
+  theme_classic() + 
+  theme(axis.text = element_text(color = "black",
+                                 family = "serif"),
+        axis.title = element_text(family = "serif"),
+        legend.text = element_text(family = "serif"),
+        legend.title = element_text(family = "serif"),
+        panel.grid = element_blank())
+
+ggsave(file.path(figdir, "seasonal_hwe_barplot.pdf"), p, 
+       width = 7.48, height = 3)
+
+#------------------------------------------------------------------------------
+
+#-- HWEs by Period ------------------------------------------------------------
+library(ggplot2)
+
+sites <- c("Kaktovik", "Barrow", "Nome", "St. Paul", "Kodiak", "Anchorage", 
+           "Juneau", "Sitka")
+years <- c("1980-1997", "1997-2014")
+
+hwes <- data.frame(site = factor(rep(sites, each = 2), levels = sites),
+                   Period = factor(rep(years, 8), levels = years),
+                   prop = c(44, 56, 39, 61, 45, 55, 53, 47, 55, 45, 65, 35, 
+                            62, 38, 43, 57))
+
+barfill <- c("khaki1", "lightslateblue")
+barcols <- c("khaki3", "lightslategrey")
+
+p <- ggplot(hwes, aes(x = site, y = prop, color = Period, fill = Period)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.6), width = 0.5) + 
+  scale_fill_manual(values = barfill) +
+  scale_color_manual(values = barcols) +
+  scale_y_continuous(limits = c(0, 101), expand = c(0, 0)) +
+  xlab("Location") + ylab("Proportion (%)") +
+  theme_classic() + 
+  theme(axis.text = element_text(color = "black",
+                                 family = "serif"),
+        axis.title = element_text(family = "serif"),
+        legend.text = element_text(family = "serif"),
+        legend.title = element_text(family = "serif"),
+        panel.grid = element_blank())
+
+ggsave(file.path(figdir, "period_hwe_barplot.pdf"), p, 
+       width = 7.48, height = 3)
+
+#------------------------------------------------------------------------------
+
+#-- Model Trends Barplots -----------------------------------------------------
+library(ggplot2)
+
+mods <- c("CM3", "CCSM4")
+years <- c("1980-2014", "2065-2099")
+seasons <- c("cold", "warm")
+
+trends <- data.frame(mod = factor(rep(mods, each = 2), levels = mods),
+                     Period = factor(rep(years, 4), levels = years),
+                     season = factor(rep(seasons, each = 4), levels = seasons),
+                     count = c(102, 21, 95, 2, 13, 162, 18, 38))
+
+barfill <- c("slategray1", "wheat")
+barcols <- c("slategray", "wheat3")
+
+labels <- c(cold = "Cold Season\n(Dec - Mar)", warm = "Warm Season\n(Jun - Sep)")
+
+p <- ggplot(trends, aes(x = mod, y = count, color = Period, fill = Period)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.6), width = 0.5) + 
+  facet_wrap(~season, labeller = labeller(season = labels)) + 
+  scale_fill_manual(values = barfill) +
+  scale_color_manual(values = barcols) +
+  scale_y_continuous(limits = c(0, 165), expand = c(0, 0)) +
+  xlab("Model") + ylab("Count (station-months)") +
+  theme_classic() + 
+  theme(axis.text = element_text(color = "black",
+                                 family = "serif"),
+        axis.title = element_text(family = "serif"),
+        legend.text = element_text(family = "serif"),
+        legend.title = element_text(family = "serif"),
+        strip.text = element_text(size = 12, 
+                                  family = "serif",
+                                  margin = margin(1, 0, 10, 0)),
+        strip.background = element_blank())
+
+ggsave(file.path(figdir, "season_trend_barplot.pdf"), p, 
+       width = 7.48, height = 3.5)
 
 #------------------------------------------------------------------------------
