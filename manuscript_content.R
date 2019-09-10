@@ -669,13 +669,34 @@ saveMonthlyRoses <- function(stid, asos_dir){
   
   rs <- lapply(1:12, monthlyRose, asos, gl)
   
-  arrangeGrob(grobs = rs, nrow = 4)
+  p1 <- arrangeGrob(grobs = rs, nrow = 4)
+  
+  # plot for custom legend
+  speeds <- c("0 - 6", "6 - 10", "10 - 14", "14 - 18", "18 - 22", "22 +")
+  dfleg <- data.frame(x = 1:6, mph = factor(speeds, levels = speeds))
+  pleg <- ggplot(dfleg, aes(x, x)) + 
+    geom_tile(aes(fill = mph)) +
+    scale_fill_manual(guide = guide_legend(
+      direction = "vertical",
+      title.position = "top",
+      label.position = "right"
+    ),
+    values = openColours(n = 6)) +
+    theme(legend.position = "right",
+          legend.title = element_text(family = "serif"),
+          legend.text = element_text(family = "serif"),
+          legend.margin = margin(c(0, 0, 0, 0)))
+  tmp <- ggplot_gtable(ggplot_build(pleg))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  mylegend <- tmp$grobs[[leg]]
+  
+  arrangeGrob(p1, mylegend, ncol = 2, widths = c(8, 1))
 }
 
 # Anchorage
 stids <- c("PANC 2 Anchorage")
 roses <- lapply(stids, saveMonthlyRoses, asos_dir)
-ggsave(file.path(figdir, "figure_7.pdf"), roses[[1]], width = 7, height = 9)
+ggsave(file.path(figdir, "figure_7.pdf"), roses[[1]], width = 7.48, height = 9)
 
 #------------------------------------------------------------------------------
 
