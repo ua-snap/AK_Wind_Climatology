@@ -12,11 +12,11 @@
 # Checkerboard ttest results
 #
 # Output files:
-#   /figures/manuscript/AK_ASOS_station_locations.pdf
-#   /figures/manuscript/asos_discont_adj_ex.pdf
-#   /figures/manuscript/ERA_CM3_ECDFs.pdf
-#   /figures/manuscript/wind_event_ASOS_ERA.pdf
-#   /figures/manuscript/wrf_clim_ttest_signif_heatmap.pdf
+#   /figures/manuscript/figure_1.pdf
+#   /figures/manuscript/figure_2.pdf
+#   /figures/manuscript/figure_3.pdf
+#   /figures/manuscript/figure_4.pdf
+#   /figures/manuscript/figure_6.pdf
 
 
 
@@ -458,6 +458,297 @@ ggsave(fig_path, p, dev = "pdf", width = 7.25, height = 6)
 
 #------------------------------------------------------------------------------
 
+#-- Fig 6 Monthly Bar Plots ---------------------------------------------------
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+
+workdir <- getwd()
+datadir <- file.path(workdir, "data")
+figdir <- file.path(workdir, "figures", "manuscript")
+
+monthly_path <- file.path(
+  datadir, "AK_ASOS_monthly_select_adj_19800101_to_20150101.Rds")
+asos_monthly <- readRDS(monthly_path)
+
+stids <- c("PANC", "PABT", "PAFA", "PAJN",
+           "PADK", "PAOM", "PASN", "PABR")
+sta_names <- c("Anchorage", "Bettles", "Fairbanks", "Juneau", 
+               "Kodiak", "Nome", "Saint Paul", "Barrow (Utqiagvik)")
+names_df <- data.frame(stid = stids, 
+                       sta_name = factor(sta_names), 
+                       stringsAsFactors = FALSE)
+
+asos_temp <- asos_monthly %>%
+  filter(stid %in% stids & ym_date < ymd("2015-01-01")) %>%
+  left_join(names_df, by = "stid") %>%
+  mutate(month = as.factor(month(ym_date))) %>%
+  group_by(sta_name, month) %>%
+  summarise(sd_sped = sd(avg_sped),
+            avg_sped = mean(avg_sped))
+levels(asos_temp$month) <- month.abb[as.numeric(levels(asos_temp$month))]
+
+barfill <- "gold1"
+barlines <- "goldenrod2"
+
+p <- ggplot(asos_temp, aes(x = month, y = avg_sped)) +
+  geom_errorbar(aes(ymin = avg_sped, 
+                    ymax = avg_sped + sd_sped, 
+                    width = 0.2)) +
+  geom_bar(stat = "identity", colour = barlines, fill = barfill) +
+  scale_y_continuous(expand = c(0, 0)) +
+  facet_wrap(~sta_name, scales = "free_y", nrow = 4) +
+  xlab("Month") + ylab("Avg Wind Speed (mph)") +
+  theme_classic() +
+  theme(axis.text = element_text("serif",
+                                 size = 10,
+                                 color = "black"),
+        axis.title = element_text("serif",
+                                  size = 12),
+        strip.background = element_blank(),
+        strip.text = element_text("serif",
+                                  size = 12)) +
+  annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf) +
+  annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf)
+
+ggsave(file.path(figdir, "figure_6.pdf"), p, 
+       width = 7.48, height = 9)
+
+#------------------------------------------------------------------------------
+
+#-- Fig 7 Wind Roses ----------------------------------------------------------
+library(dplyr)
+library(ggplot2)
+library(openair)
+library(gridExtra)
+library(grid)
+library(lattice)
+
+workdir <- getwd()
+datadir <- file.path(workdir, "data")
+figdir <- file.path(workdir, "figures", "manuscript")
+
+source(file.path(workdir, "windRose.R"))
+asos_dir <- file.path(datadir, "AK_ASOS_stations_adj")
+
+# Annual Roses
+# Not using these for now
+invisible('
+# id 20 is Fairbanks
+saveWindRoses <- function(stid, asos_dir){
+  gl <- as.numeric(strsplit(stid, " ")[[1]][2])
+  stid <- strsplit(stid, " ")[[1]][1]
+  
+  asos <- readRDS(file.path(asos_dir, paste0(stid, ".Rds")))
+  calm <- nrow(asos[asos$sped_adj == 0, ])/nrow(asos)
+  asos$sped_adj[asos$drct == 0] <- 0
+  
+  p <- windRose(asos, "sped_adj", "drct", 
+                paddle = FALSE, breaks = c(0, 6, 10, 14, 18, 22),
+                angle = 10, grid.line = gl, calm = calm)
+  return(p$plot)
+}
+
+stids <- c("PANC 2", "PABT 1", "PAFA 1", "PAJN 2",
+           "PADK 2", "PAOM 2", "PASN 1", "PABR 2")
+roses <- lapply(stids, saveWindRoses, asos_dir )
+
+# plot for custom legend
+speeds <- c("0 - 6", "6 - 10", "10 - 14", "14 - 18", "18 - 22", "22 +")
+dfleg <- data.frame(x = 1:6, mph = factor(speeds, levels = speeds))
+pleg <- ggplot(dfleg, aes(x, x)) + 
+  geom_tile(aes(fill = mph)) +
+  scale_fill_manual(guide = guide_legend(
+    direction = "vertical",
+    title.position = "top",
+    label.position = "right",
+    ncol = 2
+  ),
+  values = openColours(n = 6)) +
+  theme(legend.position = "right",
+        legend.title = element_text(family = "serif"),
+        legend.text = element_text(family = "serif"),
+        legend.margin = margin(c(0, 0, 0, 0)))
+tmp <- ggplot_gtable(ggplot_build(pleg))
+leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+mylegend <- tmp$grobs[[leg]]
+
+# textGrobs for titles
+tg1 <- textGrob("Anchorage", gp = gpar(fontfamily = "serif"), 
+                x = unit(0.3, "npc"), y = unit(-1, "npc"))
+tg2 <- textGrob("Bettles", gp = gpar(fontfamily = "serif"), 
+                x = unit(0.25, "npc"), y = unit(-1, "npc"))
+tg3 <- textGrob("Fairbanks", gp = gpar(fontfamily = "serif"), 
+                x = unit(0.3, "npc"), y = unit(-1, "npc"))
+tg4 <- textGrob("Juneau", gp = gpar(fontfamily = "serif"), 
+                x = unit(0.25, "npc"), y = unit(-1, "npc"))
+tg5 <- textGrob("Kodiak", gp = gpar(fontfamily = "serif"), 
+                x = unit(0.25, "npc"), y = unit(-1, "npc"))
+tg6 <- textGrob("Nome", gp = gpar(fontfamily = "serif"), 
+                x = unit(0.25, "npc"), y = unit(-1, "npc"))
+tg7 <- textGrob("Saint Paul", gp = gpar(fontfamily = "serif"), 
+                x = unit(0.3, "npc"), y = unit(-1, "npc"))
+tg8 <- textGrob("Utqiagvik (Barrow)", gp = gpar(fontfamily = "serif"), 
+                x = unit(0.4, "npc"), y = unit(-1, "npc"))
+tg9 <- textGrob(" ", just = "left")
+
+r1 <- arrangeGrob(tg1, tg2, tg3, 
+                  roses[[1]], roses[[2]], roses[[3]], nrow = 2, ncol = 3, 
+                  heights = c(1, 40))
+r2 <- arrangeGrob(tg4, tg5, tg6, 
+                  roses[[4]], roses[[5]], roses[[6]], nrow = 2, ncol = 3, 
+                  heights = c(1, 40))
+r3 <- arrangeGrob(tg7, tg8, tg9, 
+                  roses[[7]], roses[[8]], mylegend, nrow = 2, ncol = 3, 
+                  heights = c(1, 40))
+
+p <- arrangeGrob(r1, r2, r3, nrow = 3)
+
+ggsave(file.path(figdir, "annual_wind_roses.pdf"), p, width = 7.48, height = 8)
+')
+
+# Figure 7 Anchorage Monthly Wind Roses
+saveMonthlyRoses <- function(stid, asos_dir){
+  library(lubridate)
+  
+  gl <- as.numeric(strsplit(stid, " ")[[1]][2])
+  #st_name <- strsplit(stid, " ")[[1]][3]
+  #st_name <- gsub("_", " ", st_name)
+  stid <- strsplit(stid, " ")[[1]][1]
+  
+  asos <- readRDS(file.path(asos_dir, paste0(stid, ".Rds"))) %>%
+    mutate(mo = month(t_round))
+  
+  lattice.options(
+    layout.heights=list(bottom.padding=list(x=-0.75), top.padding=list(x=-0.75)),
+    layout.widths=list(left.padding=list(x=-0.75), right.padding=list(x=-0.75))
+  )
+  monthlyRose <- function(mo.no, df, gl){
+    df <- df %>% filter(mo == mo.no)
+    
+    calm <- nrow(df[df$sped_adj == 0, ])/nrow(df)
+    df$sped_adj[df$drct == 0] <- 0
+    
+    p <- windRose(df, "sped_adj", "drct", 
+                  paddle = FALSE, breaks = c(0, 6, 10, 14, 18, 22),
+                  angle = 10, grid.line = gl, calm = calm)
+    
+    tg <- textGrob(month.name[mo.no], gp = gpar(fontfamily = "serif"), 
+                   x = unit(0.5, "npc"), y = unit(0.3, "npc"))
+    p <- arrangeGrob(p$plot, top = tg)
+    
+    return(p)
+  }
+  
+  rs <- lapply(1:12, monthlyRose, asos, gl)
+  
+  p1 <- arrangeGrob(grobs = rs, nrow = 4)
+  
+  # plot for custom legend
+  speeds <- c("0 - 6", "6 - 10", "10 - 14", "14 - 18", "18 - 22", "22 +")
+  dfleg <- data.frame(x = 1:6, mph = factor(speeds, levels = speeds))
+  pleg <- ggplot(dfleg, aes(x, x)) + 
+    geom_tile(aes(fill = mph)) +
+    scale_fill_manual(guide = guide_legend(
+      direction = "vertical",
+      title.position = "top",
+      label.position = "right"
+    ),
+    values = openColours(n = 6)) +
+    theme(legend.position = "right",
+          legend.title = element_text(family = "serif"),
+          legend.text = element_text(family = "serif"),
+          legend.margin = margin(c(0, 0, 0, 0)))
+  tmp <- ggplot_gtable(ggplot_build(pleg))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  mylegend <- tmp$grobs[[leg]]
+  
+  arrangeGrob(p1, mylegend, ncol = 2, widths = c(8, 1))
+}
+
+stids <- c("PANC 2 Anchorage")
+roses <- lapply(stids, saveMonthlyRoses, asos_dir)
+ggsave(file.path(figdir, "figure_7.pdf"), roses[[1]], width = 7.48, height = 9)
+
+#------------------------------------------------------------------------------
+
+#-- Fig 9 Seasonal Coastal HWEs -----------------------------------------------
+library(ggplot2)
+
+workdir <- getwd()
+datadir <- file.path(workdir, "data")
+figdir <- file.path(workdir, "figures", "manuscript")
+
+sites <- c("Kaktovik (13)", "Barrow (51)", "Nome (42)", "St. Paul (17)", 
+           "Kodiak (47)", "Anchorage (17)", "Juneau (107)", "Sitka (56)")
+seasons <- c("Wi", "Sp", "Su", "Au")
+
+seas <- data.frame(site = factor(rep(sites, each = 4), levels = sites),
+                   Season = factor(rep(seasons, 8), levels = seasons),
+                   prop = c(85, 0, 0, 15, 39, 18, 0, 43, 50, 10, 5, 35, 82, 18, 
+                            0, 0, 57, 15, 0, 28, 59, 18, 0, 23, 61, 19, 0, 20, 
+                            53, 9, 2, 36))
+
+barfill <- c("cadetblue1", "green3", "gold1", "lightsalmon")
+barcols <- c("cadetblue", "forestgreen", "darkgoldenrod", "lightsalmon3")
+
+p <- ggplot(seas, aes(x = site, y = prop, color = Season, fill = Season)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.8) + 
+  scale_fill_manual(values = barfill) +
+  scale_color_manual(values = barcols) +
+  scale_y_continuous(limits = c(0, 101), expand = c(0, 0)) +
+  xlab("Location") + ylab("Proportion (%)") +
+  theme_classic() + 
+  theme(axis.text = element_text(color = "black",
+                                 family = "serif"),
+        axis.title = element_text(family = "serif"),
+        legend.text = element_text(family = "serif"),
+        legend.title = element_text(family = "serif"),
+        panel.grid = element_blank())
+
+ggsave(file.path(figdir, "figure_9.pdf"), p, 
+       width = 7.48, height = 3)
+
+#------------------------------------------------------------------------------
+
+#-- Fig 10 HWEs by Period -----------------------------------------------------
+library(ggplot2)
+
+workdir <- getwd()
+datadir <- file.path(workdir, "data")
+figdir <- file.path(workdir, "figures", "manuscript")
+
+sites <- c("Kaktovik", "Barrow", "Nome", "St. Paul", "Kodiak", "Anchorage", 
+           "Juneau", "Sitka")
+years <- c("1980-1997", "1997-2014")
+
+hwes <- data.frame(site = factor(rep(sites, each = 2), levels = sites),
+                   Period = factor(rep(years, 8), levels = years),
+                   prop = c(44, 56, 39, 61, 45, 55, 53, 47, 55, 45, 65, 35, 
+                            62, 38, 43, 57))
+
+barfill <- c("khaki1", "lightslateblue")
+barcols <- c("khaki3", "lightslategrey")
+
+p <- ggplot(hwes, aes(x = site, y = prop, color = Period, fill = Period)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.6), width = 0.5) + 
+  scale_fill_manual(values = barfill) +
+  scale_color_manual(values = barcols) +
+  scale_y_continuous(limits = c(0, 101), expand = c(0, 0)) +
+  xlab("Location") + ylab("Proportion (%)") +
+  theme_classic() + 
+  theme(axis.text = element_text(color = "black",
+                                 family = "serif"),
+        axis.title = element_text(family = "serif"),
+        legend.text = element_text(family = "serif"),
+        legend.title = element_text(family = "serif"),
+        panel.grid = element_blank())
+
+ggsave(file.path(figdir, "figure_10.pdf"), p, 
+       width = 7.48, height = 3)
+
+#------------------------------------------------------------------------------
+
 #-- Fig 11 t-test heatmap -----------------------------------------------------
 library(dplyr)
 library(ggplot2)
@@ -567,295 +858,6 @@ p <- ggplot(results_df, aes(x = mo, y = reorder(pub_name, desc(pub_name)))) +
 
 plot_path <- file.path(figdir, "figure_11.pdf")
 ggsave(plot_path, p, device = "pdf", height = 7, width = 3.54)
-
-#------------------------------------------------------------------------------
-
-#-- Fig 7 Wind Roses ----------------------------------------------------------
-library(dplyr)
-library(ggplot2)
-library(openair)
-library(gridExtra)
-library(grid)
-library(lattice)
-
-workdir <- getwd()
-datadir <- file.path(workdir, "data")
-figdir <- file.path(workdir, "figures", "manuscript")
-
-source(file.path(workdir, "windRose.R"))
-asos_dir <- file.path(datadir, "AK_ASOS_stations_adj")
-
-# Annual Roses
-# id 20 is Fairbanks
-saveWindRoses <- function(stid, asos_dir){
-  gl <- as.numeric(strsplit(stid, " ")[[1]][2])
-  stid <- strsplit(stid, " ")[[1]][1]
-  
-  asos <- readRDS(file.path(asos_dir, paste0(stid, ".Rds")))
-  calm <- nrow(asos[asos$sped_adj == 0, ])/nrow(asos)
-  asos$sped_adj[asos$drct == 0] <- 0
-  
-  p <- windRose(asos, "sped_adj", "drct", 
-           paddle = FALSE, breaks = c(0, 6, 10, 14, 18, 22),
-           angle = 10, grid.line = gl, calm = calm)
-  return(p$plot)
-}
-
-stids <- c("PANC 2", "PABT 1", "PAFA 1", "PAJN 2",
-           "PADK 2", "PAOM 2", "PASN 1", "PABR 2")
-roses <- lapply(stids, saveWindRoses, asos_dir )
-
-# plot for custom legend
-speeds <- c("0 - 6", "6 - 10", "10 - 14", "14 - 18", "18 - 22", "22 +")
-dfleg <- data.frame(x = 1:6, mph = factor(speeds, levels = speeds))
-pleg <- ggplot(dfleg, aes(x, x)) + 
-  geom_tile(aes(fill = mph)) +
-  scale_fill_manual(guide = guide_legend(
-    direction = "vertical",
-    title.position = "top",
-    label.position = "right",
-    ncol = 2
-  ),
-  values = openColours(n = 6)) +
-  theme(legend.position = "right",
-        legend.title = element_text(family = "serif"),
-        legend.text = element_text(family = "serif"),
-        legend.margin = margin(c(0, 0, 0, 0)))
-tmp <- ggplot_gtable(ggplot_build(pleg))
-leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
-mylegend <- tmp$grobs[[leg]]
-
-# textGrobs for titles
-tg1 <- textGrob("Anchorage", gp = gpar(fontfamily = "serif"), 
-                x = unit(0.3, "npc"), y = unit(-1, "npc"))
-tg2 <- textGrob("Bettles", gp = gpar(fontfamily = "serif"), 
-                x = unit(0.25, "npc"), y = unit(-1, "npc"))
-tg3 <- textGrob("Fairbanks", gp = gpar(fontfamily = "serif"), 
-                x = unit(0.3, "npc"), y = unit(-1, "npc"))
-tg4 <- textGrob("Juneau", gp = gpar(fontfamily = "serif"), 
-                x = unit(0.25, "npc"), y = unit(-1, "npc"))
-tg5 <- textGrob("Kodiak", gp = gpar(fontfamily = "serif"), 
-                x = unit(0.25, "npc"), y = unit(-1, "npc"))
-tg6 <- textGrob("Nome", gp = gpar(fontfamily = "serif"), 
-                x = unit(0.25, "npc"), y = unit(-1, "npc"))
-tg7 <- textGrob("Saint Paul", gp = gpar(fontfamily = "serif"), 
-                x = unit(0.3, "npc"), y = unit(-1, "npc"))
-tg8 <- textGrob("Utqiagvik (Barrow)", gp = gpar(fontfamily = "serif"), 
-                x = unit(0.4, "npc"), y = unit(-1, "npc"))
-tg9 <- textGrob(" ", just = "left")
-
-r1 <- arrangeGrob(tg1, tg2, tg3, 
-                  roses[[1]], roses[[2]], roses[[3]], nrow = 2, ncol = 3, 
-                  heights = c(1, 40))
-r2 <- arrangeGrob(tg4, tg5, tg6, 
-                  roses[[4]], roses[[5]], roses[[6]], nrow = 2, ncol = 3, 
-                  heights = c(1, 40))
-r3 <- arrangeGrob(tg7, tg8, tg9, 
-                  roses[[7]], roses[[8]], mylegend, nrow = 2, ncol = 3, 
-                  heights = c(1, 40))
-
-p <- arrangeGrob(r1, r2, r3, nrow = 3)
-
-ggsave(file.path(figdir, "annual_wind_roses.pdf"), p, width = 7.48, height = 8)
-
-# Monthly Wind Roses
-saveMonthlyRoses <- function(stid, asos_dir){
-  library(lubridate)
-  
-  gl <- as.numeric(strsplit(stid, " ")[[1]][2])
-  #st_name <- strsplit(stid, " ")[[1]][3]
-  #st_name <- gsub("_", " ", st_name)
-  stid <- strsplit(stid, " ")[[1]][1]
-  
-  asos <- readRDS(file.path(asos_dir, paste0(stid, ".Rds"))) %>%
-    mutate(mo = month(t_round))
-  
-  lattice.options(
-    layout.heights=list(bottom.padding=list(x=-0.75), top.padding=list(x=-0.75)),
-    layout.widths=list(left.padding=list(x=-0.75), right.padding=list(x=-0.75))
-  )
-  monthlyRose <- function(mo.no, df, gl){
-    df <- df %>% filter(mo == mo.no)
-    
-    calm <- nrow(df[df$sped_adj == 0, ])/nrow(df)
-    df$sped_adj[df$drct == 0] <- 0
-    
-    p <- windRose(df, "sped_adj", "drct", 
-                  paddle = FALSE, breaks = c(0, 6, 10, 14, 18, 22),
-                  angle = 10, grid.line = gl, calm = calm)
-    
-    tg <- textGrob(month.name[mo.no], gp = gpar(fontfamily = "serif"), 
-                   x = unit(0.5, "npc"), y = unit(0.3, "npc"))
-    p <- arrangeGrob(p$plot, top = tg)
-    
-    return(p)
-  }
-  
-  rs <- lapply(1:12, monthlyRose, asos, gl)
-  
-  p1 <- arrangeGrob(grobs = rs, nrow = 4)
-  
-  # plot for custom legend
-  speeds <- c("0 - 6", "6 - 10", "10 - 14", "14 - 18", "18 - 22", "22 +")
-  dfleg <- data.frame(x = 1:6, mph = factor(speeds, levels = speeds))
-  pleg <- ggplot(dfleg, aes(x, x)) + 
-    geom_tile(aes(fill = mph)) +
-    scale_fill_manual(guide = guide_legend(
-      direction = "vertical",
-      title.position = "top",
-      label.position = "right"
-    ),
-    values = openColours(n = 6)) +
-    theme(legend.position = "right",
-          legend.title = element_text(family = "serif"),
-          legend.text = element_text(family = "serif"),
-          legend.margin = margin(c(0, 0, 0, 0)))
-  tmp <- ggplot_gtable(ggplot_build(pleg))
-  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
-  mylegend <- tmp$grobs[[leg]]
-  
-  arrangeGrob(p1, mylegend, ncol = 2, widths = c(8, 1))
-}
-
-# Anchorage
-stids <- c("PANC 2 Anchorage")
-roses <- lapply(stids, saveMonthlyRoses, asos_dir)
-ggsave(file.path(figdir, "figure_7.pdf"), roses[[1]], width = 7.48, height = 9)
-
-#------------------------------------------------------------------------------
-
-#-- Fig 6 Monthly Bar Plots ---------------------------------------------------
-library(dplyr)
-library(lubridate)
-library(ggplot2)
-
-workdir <- getwd()
-datadir <- file.path(workdir, "data")
-figdir <- file.path(workdir, "figures", "manuscript")
-
-monthly_path <- file.path(
-  datadir, "AK_ASOS_monthly_select_adj_19800101_to_20150101.Rds")
-asos_monthly <- readRDS(monthly_path)
-
-stids <- c("PANC", "PABT", "PAFA", "PAJN",
-           "PADK", "PAOM", "PASN", "PABR")
-sta_names <- c("Anchorage", "Bettles", "Fairbanks", "Juneau", 
-               "Kodiak", "Nome", "Saint Paul", "Barrow (Utqiagvik)")
-names_df <- data.frame(stid = stids, 
-                       sta_name = factor(sta_names), 
-                       stringsAsFactors = FALSE)
-
-asos_temp <- asos_monthly %>%
-  filter(stid %in% stids & ym_date < ymd("2015-01-01")) %>%
-  left_join(names_df, by = "stid") %>%
-  mutate(month = as.factor(month(ym_date))) %>%
-  group_by(sta_name, month) %>%
-  summarise(sd_sped = sd(avg_sped),
-            avg_sped = mean(avg_sped))
-levels(asos_temp$month) <- month.abb[as.numeric(levels(asos_temp$month))]
-
-barfill <- "gold1"
-barlines <- "goldenrod2"
-
-p <- ggplot(asos_temp, aes(x = month, y = avg_sped)) +
-  geom_errorbar(aes(ymin = avg_sped, 
-                    ymax = avg_sped + sd_sped, 
-                    width = 0.2)) +
-  geom_bar(stat = "identity", colour = barlines, fill = barfill) +
-  scale_y_continuous(expand = c(0, 0)) +
-  facet_wrap(~sta_name, scales = "free_y", nrow = 4) +
-  xlab("Month") + ylab("Avg Wind Speed (mph)") +
-  theme_classic() +
-  theme(axis.text = element_text("serif",
-                                 size = 10,
-                                 color = "black"),
-        axis.title = element_text("serif",
-                                  size = 12),
-        strip.background = element_blank(),
-        strip.text = element_text("serif",
-                                  size = 12)) +
-  annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf) +
-  annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf)
-
-ggsave(file.path(figdir, "figure_6.pdf"), p, 
-       width = 7.48, height = 9)
-
-#------------------------------------------------------------------------------
-
-#-- Fig 9 Seasonal Coastal HWEs -----------------------------------------------
-library(ggplot2)
-
-workdir <- getwd()
-datadir <- file.path(workdir, "data")
-figdir <- file.path(workdir, "figures", "manuscript")
-
-sites <- c("Kaktovik (13)", "Barrow (51)", "Nome (42)", "St. Paul (17)", 
-           "Kodiak (47)", "Anchorage (17)", "Juneau (107)", "Sitka (56)")
-seasons <- c("Wi", "Sp", "Su", "Au")
-
-seas <- data.frame(site = factor(rep(sites, each = 4), levels = sites),
-                   Season = factor(rep(seasons, 8), levels = seasons),
-                   prop = c(85, 0, 0, 15, 39, 18, 0, 43, 50, 10, 5, 35, 82, 18, 
-                            0, 0, 57, 15, 0, 28, 59, 18, 0, 23, 61, 19, 0, 20, 
-                            53, 9, 2, 36))
-
-barfill <- c("cadetblue1", "green3", "gold1", "lightsalmon")
-barcols <- c("cadetblue", "forestgreen", "darkgoldenrod", "lightsalmon3")
-
-p <- ggplot(seas, aes(x = site, y = prop, color = Season, fill = Season)) +
-  geom_bar(stat = "identity", position = "dodge", width = 0.8) + 
-  scale_fill_manual(values = barfill) +
-  scale_color_manual(values = barcols) +
-  scale_y_continuous(limits = c(0, 101), expand = c(0, 0)) +
-  xlab("Location") + ylab("Proportion (%)") +
-  theme_classic() + 
-  theme(axis.text = element_text(color = "black",
-                                 family = "serif"),
-        axis.title = element_text(family = "serif"),
-        legend.text = element_text(family = "serif"),
-        legend.title = element_text(family = "serif"),
-        panel.grid = element_blank())
-
-ggsave(file.path(figdir, "figure_9.pdf"), p, 
-       width = 7.48, height = 3)
-
-#------------------------------------------------------------------------------
-
-#-- Fig 10 HWEs by Period -----------------------------------------------------
-library(ggplot2)
-
-workdir <- getwd()
-datadir <- file.path(workdir, "data")
-figdir <- file.path(workdir, "figures", "manuscript")
-
-sites <- c("Kaktovik", "Barrow", "Nome", "St. Paul", "Kodiak", "Anchorage", 
-           "Juneau", "Sitka")
-years <- c("1980-1997", "1997-2014")
-
-hwes <- data.frame(site = factor(rep(sites, each = 2), levels = sites),
-                   Period = factor(rep(years, 8), levels = years),
-                   prop = c(44, 56, 39, 61, 45, 55, 53, 47, 55, 45, 65, 35, 
-                            62, 38, 43, 57))
-
-barfill <- c("khaki1", "lightslateblue")
-barcols <- c("khaki3", "lightslategrey")
-
-p <- ggplot(hwes, aes(x = site, y = prop, color = Period, fill = Period)) +
-  geom_bar(stat = "identity", position = position_dodge(width = 0.6), width = 0.5) + 
-  scale_fill_manual(values = barfill) +
-  scale_color_manual(values = barcols) +
-  scale_y_continuous(limits = c(0, 101), expand = c(0, 0)) +
-  xlab("Location") + ylab("Proportion (%)") +
-  theme_classic() + 
-  theme(axis.text = element_text(color = "black",
-                                 family = "serif"),
-        axis.title = element_text(family = "serif"),
-        legend.text = element_text(family = "serif"),
-        legend.title = element_text(family = "serif"),
-        panel.grid = element_blank())
-
-ggsave(file.path(figdir, "figure_10.pdf"), p, 
-       width = 7.48, height = 3)
 
 #------------------------------------------------------------------------------
 
