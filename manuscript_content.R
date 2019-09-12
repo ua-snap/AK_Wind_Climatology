@@ -20,20 +20,17 @@
 
 
 
-#-- Setup ---------------------------------------------------------------------
-workdir <- getwd()
-datadir <- file.path(workdir, "data")
-figdir <- file.path(workdir, "figures", "manuscript")
-
-#------------------------------------------------------------------------------
-
-#-- AK Map of Stations --------------------------------------------------------
+#-- Fig 1 AK Map of Stations --------------------------------------------------
 library(dplyr)
 library(lubridate)
 library(ggplot2)
 library(ggrepel)
 library(sf)
 library(USAboundaries)
+
+workdir <- getwd()
+datadir <- file.path(workdir, "data")
+figdir <- file.path(workdir, "figures", "manuscript")
 
 # load select stations
 select_stations <- readRDS(file.path(datadir, "AK_ASOS_select_stations.RDS"))
@@ -73,7 +70,7 @@ lab_coords <- lab_coords %>%
   rename(lonl = V1, latl = V2)
 
 lab_coords$site <- c("Kaktovik",
-                     "Utqiagvik (Barrow)",
+                     "Barrow (Utqiagvik)",
                      "Kodiak",
                      "Juneau",
                      "Anchorage",
@@ -101,12 +98,16 @@ ggsave(fig_path, p, device = "pdf", width = 3.54, height = 2.05)
 
 #------------------------------------------------------------------------------
 
-#-- Discontinuity Adjustment Time Series --------------------------------------
+#-- Fig 2 Discontinuity Adj Time Series ---------------------------------------
 library(dplyr)
 library(lubridate)
 library(ggplot2)
 library(gridExtra)
 library(grid)
+
+workdir <- getwd()
+datadir <- file.path(workdir, "data")
+figdir <- file.path(workdir, "figures", "manuscript")
 
 # select/adj data summarized by month
 monthly_adj_path <- file.path(datadir, 
@@ -207,23 +208,27 @@ p <- arrangeGrob(p1, p2, nrow = 2,
                                  gp = gpar(fontsize = 10),
                                  rot = 90),
                  bottom = textGrob("Time", gp = gpar(fontsize = 10)))
-fig_path <- file.path(figdir, "asos_discont_adj_ex.pdf")
+fig_path <- file.path(figdir, "figure_2.pdf")
 ggsave(fig_path, p, device = "pdf", width = 7.25, height = 2.65)
 
 #------------------------------------------------------------------------------
 
-#-- ERA & CM3 ECDFs -----------------------------------------------------------
+#-- Fig 3 ERA & CM3 ECDFs -----------------------------------------------------
 library(dplyr)
 library(lubridate)
+library(ggplot2)
+library(gridExtra)
+library(grid)
+library(wesanderson)
+
+workdir <- getwd()
+datadir <- file.path(workdir, "data")
+figdir <- file.path(workdir, "figures", "manuscript")
 
 # ggECDF_compare modified for manuscript
 ggECDF_compare <- function(obs, sim, sim_adj, p_tag = " ",
                            sim_lab, obs_lab, cols = 1){
-  library(gridExtra)
-  library(ggplot2)
-  library(grid)
-  library(wesanderson)
-  
+
   df1 <- data.frame(sped = c(sim, obs),
                     quality = c(rep("1", length(sim)),
                                 rep("2", length(obs))))
@@ -253,8 +258,8 @@ ggECDF_compare <- function(obs, sim, sim_adj, p_tag = " ",
           plot.title = element_text(vjust = -1),
           axis.title = element_blank(),
           panel.grid = element_blank(),
-          axis.text.x = element_text(size = 7),
-          axis.text.y = element_text(size = 7),
+          axis.text = element_text(size = 7,
+                                     color = "black"),
           legend.text = element_text(size = 8),
           legend.margin = margin(-5, 0, 0, 0),
           plot.margin = unit(c(2, 2, 2, 2), "mm"))
@@ -278,7 +283,8 @@ ggECDF_compare <- function(obs, sim, sim_adj, p_tag = " ",
     theme(plot.title = element_text(vjust = -1),
           axis.title = element_blank(),
           panel.grid = element_blank(),
-          axis.text = element_text(size = 7),
+          axis.text = element_text(size = 7,
+                                   color = "black"),
           plot.margin = unit(c(2, 2, 2, 2), "mm"))
   
   if(cols == 1){
@@ -334,27 +340,26 @@ p2 <- ggECDF_compare(obs2, cm3$sped, cm3$sped_adj + 0.5,
 
 p <- arrangeGrob(p1, p2, nrow = 2)
 
-fig_path <- file.path(figdir, "ERA_CM3_ECDFs.pdf")
+fig_path <- file.path(figdir, "figure_3.pdf")
 ggsave(fig_path, p, dev = "pdf", width = 3.54, height = 4)
 
 #------------------------------------------------------------------------------
 
-#-- High Wind Events ----------------------------------------------------------
-# Need John to choose a couple
-# John suggests 6-panel figure, with 3 examples from Barrow on left and 3
-#   from Nome on right
-
+#-- Fig 4 High Wind Events ----------------------------------------------------------
+library(dplyr)
 library(lubridate)
 library(ggplot2)
 library(tidyr)
 library(gridExtra)
 library(grid)
 
+workdir <- getwd()
+datadir <- file.path(workdir, "data")
+figdir <- file.path(workdir, "figures", "manuscript")
+
 # individual event plotting function
 plotEvent <- function(t_start, asos, era, retkey = FALSE){
-  library(dplyr)
-  library(ggplot2)
-  
+ 
   start <- t_start - hours(48)
   end <- start + hours(192)
   
@@ -376,9 +381,14 @@ plotEvent <- function(t_start, asos, era, retkey = FALSE){
     theme_bw() +
     ggtitle(year(t_start)) +
     theme(axis.title = element_blank(),
-          plot.title = element_text(size = 10,
+          axis.text = element_text(family = "serif", 
+                                   color = "black"),
+          plot.title = element_text(family = "serif",
+                                    size = 10,
                                     margin = margin(0, 0, 0, 0)),
-          legend.position = "bottom")
+          legend.position = "bottom",
+          legend.text = element_text("serif"),
+          legend.title = element_text("serif"))
   
   p1 <- p + theme(legend.position = "none")
   
@@ -419,32 +429,43 @@ p6 <- plotEvent(paom_start[3], paom_asos, paom_era)
 
 # combine plots
 p_pabr <- arrangeGrob(p1[[1]], p2, p3, nrow = 3,
-                      top = textGrob("Utqiatvik (Barrow)",
-                                     x = unit(0.05, "npc"),
+                      top = textGrob("Barrow (Utqiagvik)",
+                                     x = unit(0.35, "npc"),
                                      y = unit(0.60, "npc"), 
-                                     just = c("left", "top")))
+                                     just = c("left", "top"),
+                                     gp = gpar(fontfamily = "serif")))
 p_paom <- arrangeGrob(p4, p5, p6, nrow = 3,
                       top = textGrob("Nome",
-                                     x = unit(0.05, "npc"),
+                                     x = unit(0.45, "npc"),
                                      y = unit(0.60, "npc"), 
-                                     just = c("left", "top")))
+                                     just = c("left", "top"),
+                                     gp = gpar(fontfamily = "serif")))
 p_main <- arrangeGrob(p_pabr, p_paom, ncol = 2,
                       bottom = textGrob("Date",
                                         x = unit(0.5, "npc"),
                                         vjust = -0.6,
-                                        gp = gpar(fontsize = 12)),
+                                        gp = gpar(fontsize = 12,
+                                                  fontfamily = "serif")),
                       left = textGrob("Wind Speed (mph)",
-                                      gp = gpar(fontsize = 12),
+                                      gp = gpar(fontsize = 12,
+                                                fontfamily = "serif"),
                                       rot = 90, hjust = 0.4))
 
 p <- arrangeGrob(p_main, p1[[2]], nrow = 2, heights = c(30, 1))
 
-fig_path <- file.path(figdir, "wind_event_ASOS_ERA.pdf")
+fig_path <- file.path(figdir, "figure_4.pdf")
 ggsave(fig_path, p, dev = "pdf", width = 7.25, height = 6)
 
 #------------------------------------------------------------------------------
 
-#-- t-test heatmap ----------------------------------------------------------
+#-- Fig 11 t-test heatmap -----------------------------------------------------
+library(dplyr)
+library(ggplot2)
+
+workdir <- getwd()
+datadir <- file.path(workdir, "data")
+figdir <- file.path(workdir, "figures", "manuscript")
+
 source(file.path(workdir, "helpers.R"))
 
 stid_names <- read.csv(file.path(datadir, "AK_ASOS_names_key.csv"),
@@ -453,9 +474,7 @@ stid_names <- read.csv(file.path(datadir, "AK_ASOS_names_key.csv"),
 cm3_monthly <- readRDS(file.path(datadir, "CM3_clim_monthly.Rds"))
 ccsm4_monthly <- readRDS(file.path(datadir, "CCSM4_clim_monthly.Rds"))
 
-stations <- readRDS(file.path(datadir, "AK_ASOS_select_stations.Rds"))
-stids <- stations$stid
-stid_names <- stations %>% select(stid, station_name)
+stids <- stid_names$stid
 
 # CM3
 cm3_ttest <- lapply(stids, t_test_stid, cm3_monthly) %>%
@@ -546,20 +565,22 @@ p <- ggplot(results_df, aes(x = mo, y = reorder(pub_name, desc(pub_name)))) +
   guides(fill = guide_legend(ncol = 2)) +
   facet_wrap(~dsrc)
 
-plot_path <- file.path(figdir, "wrf_clim_ttest_signif_heatmap.pdf")
+plot_path <- file.path(figdir, "figure_11.pdf")
 ggsave(plot_path, p, device = "pdf", height = 7, width = 3.54)
 
 #------------------------------------------------------------------------------
 
-#-- Wind Roses ----------------------------------------------------------------
-# Figure 7
-
+#-- Fig 7 Wind Roses ----------------------------------------------------------
 library(dplyr)
 library(ggplot2)
 library(openair)
 library(gridExtra)
 library(grid)
 library(lattice)
+
+workdir <- getwd()
+datadir <- file.path(workdir, "data")
+figdir <- file.path(workdir, "figures", "manuscript")
 
 source(file.path(workdir, "windRose.R"))
 asos_dir <- file.path(datadir, "AK_ASOS_stations_adj")
@@ -619,7 +640,7 @@ tg6 <- textGrob("Nome", gp = gpar(fontfamily = "serif"),
                 x = unit(0.25, "npc"), y = unit(-1, "npc"))
 tg7 <- textGrob("Saint Paul", gp = gpar(fontfamily = "serif"), 
                 x = unit(0.3, "npc"), y = unit(-1, "npc"))
-tg8 <- textGrob("Utqiatvik (Barrow)", gp = gpar(fontfamily = "serif"), 
+tg8 <- textGrob("Utqiagvik (Barrow)", gp = gpar(fontfamily = "serif"), 
                 x = unit(0.4, "npc"), y = unit(-1, "npc"))
 tg9 <- textGrob(" ", just = "left")
 
@@ -704,7 +725,13 @@ ggsave(file.path(figdir, "figure_7.pdf"), roses[[1]], width = 7.48, height = 9)
 #------------------------------------------------------------------------------
 
 #-- Fig 6 Monthly Bar Plots ---------------------------------------------------
-# Figure 6
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+
+workdir <- getwd()
+datadir <- file.path(workdir, "data")
+figdir <- file.path(workdir, "figures", "manuscript")
 
 monthly_path <- file.path(
   datadir, "AK_ASOS_monthly_select_adj_19800101_to_20150101.Rds")
@@ -713,7 +740,7 @@ asos_monthly <- readRDS(monthly_path)
 stids <- c("PANC", "PABT", "PAFA", "PAJN",
            "PADK", "PAOM", "PASN", "PABR")
 sta_names <- c("Anchorage", "Bettles", "Fairbanks", "Juneau", 
-               "Kodiak", "Nome", "Saint Paul", "Utqiatvik (Barrow)")
+               "Kodiak", "Nome", "Saint Paul", "Barrow (Utqiagvik)")
 names_df <- data.frame(stid = stids, 
                        sta_name = factor(sta_names), 
                        stringsAsFactors = FALSE)
@@ -756,9 +783,11 @@ ggsave(file.path(figdir, "figure_6.pdf"), p,
 #------------------------------------------------------------------------------
 
 #-- Fig 9 Seasonal Coastal HWEs -----------------------------------------------
-# Figure 9
-
 library(ggplot2)
+
+workdir <- getwd()
+datadir <- file.path(workdir, "data")
+figdir <- file.path(workdir, "figures", "manuscript")
 
 sites <- c("Kaktovik (13)", "Barrow (51)", "Nome (42)", "St. Paul (17)", 
            "Kodiak (47)", "Anchorage (17)", "Juneau (107)", "Sitka (56)")
@@ -793,9 +822,11 @@ ggsave(file.path(figdir, "figure_9.pdf"), p,
 #------------------------------------------------------------------------------
 
 #-- Fig 10 HWEs by Period -----------------------------------------------------
-# Figure 10
-
 library(ggplot2)
+
+workdir <- getwd()
+datadir <- file.path(workdir, "data")
+figdir <- file.path(workdir, "figures", "manuscript")
 
 sites <- c("Kaktovik", "Barrow", "Nome", "St. Paul", "Kodiak", "Anchorage", 
            "Juneau", "Sitka")
@@ -829,9 +860,11 @@ ggsave(file.path(figdir, "figure_10.pdf"), p,
 #------------------------------------------------------------------------------
 
 #-- Fig 12 Model Trends Barplots ----------------------------------------------
-# Figure 12
-
 library(ggplot2)
+
+workdir <- getwd()
+datadir <- file.path(workdir, "data")
+figdir <- file.path(workdir, "figures", "manuscript")
 
 mods <- c("CM3", "CCSM4")
 years <- c("1980-2014", "2065-2099")
