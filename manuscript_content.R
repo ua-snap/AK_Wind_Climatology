@@ -533,7 +533,7 @@ asos_dir <- file.path(datadir, "AK_ASOS_stations_adj")
 
 # Annual Roses
 # Not using these for now
-invisible('
+if(FALSE){
 # id 20 is Fairbanks
 saveWindRoses <- function(stid, asos_dir){
   gl <- as.numeric(strsplit(stid, " ")[[1]][2])
@@ -605,7 +605,7 @@ r3 <- arrangeGrob(tg7, tg8, tg9,
 p <- arrangeGrob(r1, r2, r3, nrow = 3)
 
 ggsave(file.path(figdir, "annual_wind_roses.pdf"), p, width = 7.48, height = 8)
-')
+}
 
 # Figure 7 Anchorage Monthly Wind Roses
 saveMonthlyRoses <- function(stid, asos_dir){
