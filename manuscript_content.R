@@ -65,21 +65,24 @@ lab_stids <- c("PABA",
                "PASN")
 
 lab_coords <- coords %>%
-  filter(stid %in% lab_stids) %>%
-  bind_cols(as.data.frame(matrix(unlist(lab_coords$geometry),
+  filter(stid %in% lab_stids) 
+
+lab_coords <- lab_coords %>%
+  bind_cols(as.data.frame(matrix(unlist(lab_coords$geometry), 
                                  ncol = 2, byrow = TRUE))) %>%
   rename(lonl = V1, latl = V2)
 
 lab_coords$site <- c("Kaktovik",
-                     "Utqiatvik (Barrow)",
+                     "Utqiagvik (Barrow)",
                      "Kodiak",
                      "Juneau",
                      "Anchorage",
                      "Nome",
                      "Sitka",
                      "Saint Paul")
-nudx <- c(400000, -700000, 200000, 200000, 550000, -300000, -50000, -100000)
-nudy <- c(100000, 0, -300000, 200000, -300000, 50000, -300000, 200000)
+
+nudx <- c(400000, -700000, 200000, 200000, 550000, -500000, -50000, -100000)
+nudy <- c(100000, 0, -300000, 200000, -300000, 100000, -300000, 200000)
 
 # plot
 p <- ggplot(data = ak_sf) + geom_sf(fill = "cornsilk", size = 0.25) +
@@ -88,12 +91,12 @@ p <- ggplot(data = ak_sf) + geom_sf(fill = "cornsilk", size = 0.25) +
   theme(axis.text = element_text(color = "black", size = 8),
         axis.title = element_text(size = 10)) +
   geom_text_repel(data = lab_coords, aes(x = lonl, y = latl, label = site),
-                  nudge_x = nudx, nudge_y = nudy, size = 2,
+                  nudge_x = nudx, nudge_y = nudy, size = 2, segment.size = 0.4,
                   min.segment.length = 0, box.padding = 0) +
   geom_sf(data = coords, shape = 19, col = "darkred", size = 0.75) 
   
 
-fig_path <- file.path(figdir, "AK_ASOS_select_locations.pdf")
+fig_path <- file.path(figdir, "figure_1.pdf")
 ggsave(fig_path, p, device = "pdf", width = 3.54, height = 2.05)
 
 #------------------------------------------------------------------------------
