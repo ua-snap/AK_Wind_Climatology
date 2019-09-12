@@ -100,7 +100,7 @@ n_stids <- length(stids)
 # observations of poor quality
 # reasons for not passing quality check
 quality_fails <- c("geq_100", # >= 100 mph reported
-                   "delta_30", # a spike of greater than 50 mph
+                   "delta_30", # a spike of greater than 30 mph
                    "not_hour") # other obs closer to hour
 bad_quality <- data.frame(stid = character(),
                           valid = ymd_hms(),
