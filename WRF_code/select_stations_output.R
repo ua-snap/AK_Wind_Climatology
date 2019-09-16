@@ -33,7 +33,7 @@ datadir <- file.path(workdir, "data")
 # local WRF data for station-based WRF output
 era_raw_dir <- file.path(datadir, "ERA_stations_raw")
 # WRF output dir (external drive)
-wrf_output_dir <- "F:/Wind_Climatology/data/WRF_output"
+wrf_output_dir <- "F:/AK_Wind_Climatology/data/WRF_output"
 
 # select stations meta data
 asos_meta_path <- file.path(datadir, "AK_ASOS_select_stations.Rds")
