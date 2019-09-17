@@ -83,7 +83,7 @@ stations_sp <- select_stations %>%
   dplyr::select(lon, lat) %>% 
   SpatialPoints(proj4string = crs1) %>%
   spTransform(wrf_crs)
-# interset points with raster
+# intersect points with raster
 u10_select <- raster::extract(r, stations_sp, method = "simple")
 # can try to match extracted wind components
 #   not useful if there are duplicate values

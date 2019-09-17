@@ -1,4 +1,7 @@
 #-- Utilities.R ---------------------------------------------------------------
+# This is code created by David Carslaw - I am just using some of these
+#   so I can use a custom windrose function
+
 ## TODO: Add comment
 #
 ## Author: David Carslaw

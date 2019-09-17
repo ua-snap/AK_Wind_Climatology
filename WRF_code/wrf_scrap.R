@@ -14,6 +14,86 @@ workdir <- getwd()
 datadir <- file.path(workdir, "data")
 figdir <- file.path(workdir, "figures", "wrf_scrap")
 wrf_data_dir <- file.path(datadir, "WRF")
+#------------------------------------------------------------------------------
+
+#-- WRF grid coordinates ------------------------------------------------------
+# James asked if I could get the coordinates of the corners of the WRF grid.
+
+# couldn't get this section finished - the grid seems to be upside down when 
+#   re-projected to long lat
+library(ncdf4) 
+library(sf)
+
+workdir <- getwd()
+datadir <- file.path(workdir, "data")
+
+wrf_output_dir <- "F:/AK_Wind_Climatology/data/WRF_output"
+u10_dir <- file.path(wrf_output_dir, "ERA_u10")
+u10_fname <- "u10_hourly_wrf_ERA-Interim_historical_"
+u10_path <- file.path(u10_dir, paste0(u10_fname, 1980, ".nc"))
+u10 <- nc_open(u10_path)
+# grid is based on centroids, so need to determine correct extent for building
+#   corresponding raster
+# extract x and y from u10
+xc <- ncvar_get(u10, varid = "xc")
+yc <- ncvar_get(u10, varid = "yc")
+nc <- length(xc)
+# close connection
+nc_close(u10)
+# resolution of grid would be the difference between two centroids
+hres <- (xc[2] - xc[1])/2
+# data frame of coordinates of WRF corners
+xnew <- seq(xc[1] - hres, xc[262] + hres, by = 20000)
+ynew <- seq(yc[262] - hres, yc[1] + hres, by = 20000)
+lon <- c(rep(xnew[1], 263), rep(xnew[263], 263), rep(xnew, 2))
+lat <- c(rep(ynew, 2), rep(ynew[1], 263), rep(ynew[263], 263))
+out_coords <- data.frame(lon, lat)
+# CRS from WRF netcdfs
+wrf_crs <- "+units=m +proj=stere +lat_ts=64.0 +lon_0=-152.0 +lat_0=90.0 +x_0=0 +y_0=0 +a=6370000 +b=6370000"
+# make data spatial
+out_coords_sf <- st_as_sf(out_coords, coords = c("lon", "lat"), crs = wrf_crs)
+# CRS for output coordinates
+new_crs <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs+ towgs84=0,0,0"
+# transform
+out_coords_sf <- st_transform(out_coords_sf, crs = 4326)
+plot(out_coords_sf, pch = ".")
+
+coords <- data.frame(lon = rep(c(xc[1] - hres, xc[nc] + hres), 2),
+                     lat = rep(c(yc[nc] - hres, yc[1] + hres), each = 2),
+                     point = c("Lower Left", "Lower Right", 
+                               "Upper Left", "Upper Right"))
+# CRS from WRF netcdfs
+wrf_crs <- "+units=m +proj=stere +lat_ts=64.0 +lon_0=-152.0 +lat_0=90.0 +x_0=0 +y_0=0 +a=6370000 +b=6370000"
+# make data spatial
+coords_sf <- st_as_sf(coords, coords = c("lon", "lat"), crs = wrf_crs)
+
+p1 <- st_point(c(-2620000, -5402425))
+p1 <- st_point(c(2620000, -5402425))
+sfc <- st_sfc(p1, crs = wrf_crs)
+st_transform(sfc, 4326)
+
+anc <- nc_open(file.path(datadir, "geo_em.d01.nc"))
+
+xlat_m <- ncvar_get(anc, varid = "XLAT_M")
+xlon_m <- ncvar_get(anc, varid = "XLONG_M")
+
+# CRS for output coordinates
+new_crs <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs+ towgs84=0,0,0"
+# transform
+st_transform(coords_sf, crs = 4326)
+
+library(sp)
+library(rgdal)
+library(dplyr)
+
+wrf_crs <- CRS("+units=m +proj=stere +lat_ts=64.0 +lon_0=-152.0 +lat_0=90.0 +x_0=0 +y_0=0 +a=6370000 +b=6370000")
+new_crs <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs+ towgs84=0,0,0")
+
+coords %>% 
+  select(lon, lat) %>%
+  SpatialPoints(proj4string = wrf_crs) %>%
+  spTransform(new_crs)
+#------------------------------------------------------------------------------
 
 #-- WRF Data Explore ----------------------------------------------------------
 u10_path <- file.path(wrf_data_dir, 
