@@ -12,16 +12,16 @@
 # Checkerboard ttest results
 #
 # Output files:
-#   /figures/manuscript/figure_1.
-#   /figures/manuscript/figure_2.
-#   /figures/manuscript/figure_3.
-#   /figures/manuscript/figure_4.
-#   /figures/manuscript/figure_6.
-#   /figures/manuscript/figure_7.
-#   /figures/manuscript/figure_9.
-#   /figures/manuscript/figure_10.
-#   /figures/manuscript/figure_11.
-#   /figures/manuscript/figure_12.
+#   /figures/manuscript/figure_1.jpeg
+#   /figures/manuscript/figure_2.jpeg
+#   /figures/manuscript/figure_3.jpeg
+#   /figures/manuscript/figure_4.jpeg
+#   /figures/manuscript/figure_6.jpeg
+#   /figures/manuscript/figure_7.jpeg
+#   /figures/manuscript/figure_9.jpeg
+#   /figures/manuscript/figure_10.jpeg
+#   /figures/manuscript/figure_11.jpeg
+#   /figures/manuscript/figure_12.jpeg
 
 
 
