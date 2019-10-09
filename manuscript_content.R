@@ -12,11 +12,16 @@
 # Checkerboard ttest results
 #
 # Output files:
-#   /figures/manuscript/figure_1.pdf
-#   /figures/manuscript/figure_2.pdf
-#   /figures/manuscript/figure_3.pdf
-#   /figures/manuscript/figure_4.pdf
-#   /figures/manuscript/figure_6.pdf
+#   /figures/manuscript/figure_1.
+#   /figures/manuscript/figure_2.
+#   /figures/manuscript/figure_3.
+#   /figures/manuscript/figure_4.
+#   /figures/manuscript/figure_6.
+#   /figures/manuscript/figure_7.
+#   /figures/manuscript/figure_9.
+#   /figures/manuscript/figure_10.
+#   /figures/manuscript/figure_11.
+#   /figures/manuscript/figure_12.
 
 
 
@@ -92,9 +97,8 @@ p <- ggplot(data = ak_sf) + geom_sf(fill = "cornsilk", size = 0.25) +
                   min.segment.length = 0, box.padding = 0) +
   geom_sf(data = coords, shape = 19, col = "darkred", size = 0.75) 
   
-
-fig_path <- file.path(figdir, "figure_1.pdf")
-ggsave(fig_path, p, device = "pdf", width = 3.54, height = 2.05)
+ggsave(file.path(figdir, "figure_1.jpeg"), 
+       p, width = 3.54, height = 2.05, dpi = 500)
 
 #------------------------------------------------------------------------------
 
@@ -208,8 +212,9 @@ p <- arrangeGrob(p1, p2, nrow = 2,
                                  gp = gpar(fontsize = 10),
                                  rot = 90),
                  bottom = textGrob("Time", gp = gpar(fontsize = 10)))
-fig_path <- file.path(figdir, "figure_2.pdf")
-ggsave(fig_path, p, device = "pdf", width = 7.25, height = 2.65)
+
+ggsave(file.path(figdir, "figure_2.jpeg"), 
+       p, width = 7.25, height = 2.65, dpi = 500)
 
 #------------------------------------------------------------------------------
 
@@ -258,9 +263,11 @@ ggECDF_compare <- function(obs, sim, sim_adj, p_tag = " ",
           plot.title = element_text(vjust = -1),
           axis.title = element_blank(),
           panel.grid = element_blank(),
-          axis.text = element_text(size = 7,
-                                     color = "black"),
-          legend.text = element_text(size = 8),
+          axis.text = element_text("serif",
+                                   size = 7,
+                                   color = "black"),
+          legend.text = element_text("serif",
+                                     size = 8),
           legend.margin = margin(-5, 0, 0, 0),
           plot.margin = unit(c(2, 2, 2, 2), "mm"))
   
@@ -283,7 +290,8 @@ ggECDF_compare <- function(obs, sim, sim_adj, p_tag = " ",
     theme(plot.title = element_text(vjust = -1),
           axis.title = element_blank(),
           panel.grid = element_blank(),
-          axis.text = element_text(size = 7,
+          axis.text = element_text("serif",
+                                   size = 7,
                                    color = "black"),
           plot.margin = unit(c(2, 2, 2, 2), "mm"))
   
@@ -304,21 +312,24 @@ ggECDF_compare <- function(obs, sim, sim_adj, p_tag = " ",
   mylegend <- tmp$grobs[[leg]]
   
   p <- arrangeGrob(mylegend,
-                   arrangeGrob(p1 + theme(legend.position = "none"),
-                               p2 + theme(legend.position = "none"), 
-                               nrow = 1,
-                               bottom = textGrob("Wind Speed (mph)",
-                                                 x = unit(0.55, "npc"),
-                                                 vjust = -0.5,
-                                                 gp = gpar(fontsize = 8)),
-                               left = textGrob("Cumulative Probability",
-                                               gp = gpar(fontsize = 8),
-                                               rot = 90, hjust = 0.35)),
-                   nrow = 2, heights = c(1, 40),
-                   top = textGrob(p_tag,
-                                  x = unit(0.05, "npc"),
-                                  y = unit(0.30, "npc"), 
-                                  just = c("left", "top")))
+     arrangeGrob(p1 + theme(legend.position = "none"),
+                 p2 + theme(legend.position = "none"), 
+                 nrow = 1,
+                 bottom = textGrob("Wind Speed (mph)",
+                                   x = unit(0.55, "npc"),
+                                   vjust = -0.5,
+                                   gp = gpar(fontsize = 8,
+                                             fontfamily = "serif")),
+                 left = textGrob("Cumulative Probability",
+                                 gp = gpar(fontsize = 8,
+                                           fontfamily = "serif"),
+                                 rot = 90, hjust = 0.35)),
+     nrow = 2, heights = c(1, 40),
+     top = textGrob(p_tag,
+                    x = unit(0.05, "npc"),
+                    y = unit(0.30, "npc"), 
+                    just = c("left", "top"),
+                    gp = gpar(fontfamily = "serif")))
   return(p)
 }
 
@@ -340,8 +351,8 @@ p2 <- ggECDF_compare(obs2, cm3$sped, cm3$sped_adj + 0.5,
 
 p <- arrangeGrob(p1, p2, nrow = 2)
 
-fig_path <- file.path(figdir, "figure_3.pdf")
-ggsave(fig_path, p, dev = "pdf", width = 3.54, height = 4)
+ggsave(file.path(figdir, "figure_3.jpeg"), 
+       p, width = 3.54, height = 4, dpi = 500)
 
 #------------------------------------------------------------------------------
 
@@ -453,8 +464,8 @@ p_main <- arrangeGrob(p_pabr, p_paom, ncol = 2,
 
 p <- arrangeGrob(p_main, p1[[2]], nrow = 2, heights = c(30, 1))
 
-fig_path <- file.path(figdir, "figure_4.pdf")
-ggsave(fig_path, p, dev = "pdf", width = 7.25, height = 6)
+ggsave(file.path(figdir, "figure_4.jpeg"), 
+       p, width = 7.25, height = 6, dpi = 500)
 
 #------------------------------------------------------------------------------
 
@@ -511,8 +522,8 @@ p <- ggplot(asos_temp, aes(x = month, y = avg_sped)) +
   annotate("segment", x=-Inf, xend=Inf, y=-Inf, yend=-Inf) +
   annotate("segment", x=-Inf, xend=-Inf, y=-Inf, yend=Inf)
 
-ggsave(file.path(figdir, "figure_6.pdf"), p, 
-       width = 7.48, height = 9)
+ggsave(file.path(figdir, "figure_6.jpeg"), 
+       p, width = 7.48, height = 9, dpi = 500)
 
 #------------------------------------------------------------------------------
 
@@ -668,7 +679,9 @@ saveMonthlyRoses <- function(stid, asos_dir){
 
 stids <- c("PANC 2 Anchorage")
 roses <- lapply(stids, saveMonthlyRoses, asos_dir)
-ggsave(file.path(figdir, "figure_7.pdf"), roses[[1]], width = 7.48, height = 9)
+
+ggsave(file.path(figdir, "figure_7.jpeg"), 
+       roses[[1]], width = 7.48, height = 9, dpi = 500)
 
 #------------------------------------------------------------------------------
 
@@ -706,8 +719,8 @@ p <- ggplot(seas, aes(x = site, y = prop, color = Season, fill = Season)) +
         legend.title = element_text(family = "serif"),
         panel.grid = element_blank())
 
-ggsave(file.path(figdir, "figure_9.pdf"), p, 
-       width = 7.48, height = 3)
+ggsave(file.path(figdir, "figure_9.jpeg"), p, 
+       width = 7.48, height = 3, dpi = 500)
 
 #------------------------------------------------------------------------------
 
@@ -744,8 +757,8 @@ p <- ggplot(hwes, aes(x = site, y = prop, color = Period, fill = Period)) +
         legend.title = element_text(family = "serif"),
         panel.grid = element_blank())
 
-ggsave(file.path(figdir, "figure_10.pdf"), p, 
-       width = 7.48, height = 3)
+ggsave(file.path(figdir, "figure_10.jpeg"), p, 
+       width = 7.48, height = 3, dpi = 500)
 
 #------------------------------------------------------------------------------
 
@@ -775,11 +788,7 @@ cm3_ttest <- lapply(stids, t_test_stid, cm3_monthly) %>%
 ccsm4_ttest <- lapply(stids, t_test_stid, ccsm4_monthly) %>%
   bind_rows() 
 
-# t-test heatmap results function
-#tHeatmap <- function(t_obj, p_mod){
-
 cm3_sig <- cm3_ttest %>% 
-  left_join(stations, by = "stid") %>%
   mutate(sig = if_else(p_val <= 0.05 & mean_x < mean_y, 
                        "Future Signif. Higher", 
                        "Future Signif. Lower"),
@@ -793,7 +802,6 @@ cm3_sig <- cm3_ttest %>%
   select(stid, sig, mo, dsrc)
 
 results_df <- ccsm4_ttest %>% 
-  left_join(stations, by = "stid") %>%
   mutate(sig = if_else(p_val <= 0.05 & mean_x < mean_y, 
                        "Future Signif. Higher", 
                        "Future Signif. Lower"),
@@ -856,8 +864,8 @@ p <- ggplot(results_df, aes(x = mo, y = reorder(pub_name, desc(pub_name)))) +
   guides(fill = guide_legend(ncol = 2)) +
   facet_wrap(~dsrc)
 
-plot_path <- file.path(figdir, "figure_11.pdf")
-ggsave(plot_path, p, device = "pdf", height = 7, width = 3.54)
+ggsave(file.path(figdir, "figure_11.jpeg"), 
+       p, height = 7, width = 3.54, dpi = 500)
 
 #------------------------------------------------------------------------------
 
@@ -901,7 +909,7 @@ p <- ggplot(trends, aes(x = mod, y = count, color = Period, fill = Period)) +
                                   margin = margin(1, 0, 10, 0)),
         strip.background = element_blank())
 
-ggsave(file.path(figdir, "figure_12.pdf"), p, 
-       width = 7.48, height = 3.5)
+ggsave(file.path(figdir, "figure_12.jpeg"), 
+       p, width = 7.48, height = 3.5, dpi = 500)
 
 #------------------------------------------------------------------------------
