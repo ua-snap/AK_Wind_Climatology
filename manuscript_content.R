@@ -1,14 +1,26 @@
 # Script Summary
 #   Generate figures to be included in the journal submission
-#
-# Map of Alaska showing station locations
-#
-# Example of wind speed time series before and after adjustment
-#
-# Quantile mapping ECDF 
-# 
-# Sample time series of winds during specific events
-#
+
+# Figure 1: Map of Alaska showing station locations
+
+# Figure 2: Example of wind speed time series before and after adjustment
+
+# Figure 3: Quantile mapping ECDFs
+ 
+# Figure 4: Sample time series of winds during specific events
+
+# Figure 6: Monthly average speeds for select locations
+
+# Figure 7: Anchorage wind roses
+
+# Figure 9: HWEs by season for select locations
+
+# Figure 10: HWEs by period for select locations
+
+# Figure 11: Checkerboard T-Test results
+
+# Figure 12: HWE counts historical/future
+
 # Checkerboard ttest results
 #
 # Output files:
