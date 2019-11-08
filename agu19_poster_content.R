@@ -100,3 +100,117 @@ fn <- "figures/agu19_poster/figure1.jpeg"
 ggsave(fn, p, width = 13.81, height = 8, dpi = 500)
 
 #------------------------------------------------------------------------------
+
+#-- Fig 2 Discontinuity Adj Time Series ---------------------------------------
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(gridExtra)
+library(grid)
+
+# select/adj data summarized by month
+monthly_adj_path <- "data/AK_ASOS_monthly_select_adj_19800101_to_20150101.Rds"
+asos_monthly <- readRDS(monthly_adj_path)
+# changepoints
+cpts_df <- readRDS("data/AK_ASOS_stations_adj/cpts_df.Rds")
+
+# x scale to be used for both plots
+date_labels <- c("1980", "1985", "1990", "1995", 
+                 "2000", "2005", "2010", "2015")
+date_breaks <- ymd(c("1980-01-01", "1985-01-01", "1990-01-01", "1995-01-01", 
+                     "2000-01-01", "2005-01-01", "2010-01-01", "2015-01-01"))
+
+# display time series for PAED and PAFA
+stid1 <- "PADK"
+asos_station1 <- asos_monthly %>% 
+  filter(stid == stid1)
+
+# changepoint info
+cpts_temp1 <- cpts_df[cpts_df$stid == stid1, ]
+# starting x for mean 1 horizontal line
+x1_start1 <- ymd("1980-01-01")
+x1_end1 <- cpts_temp1[1, 2]
+x2_end1 <- ymd("2015-01-01")
+m1_1 <- cpts_temp1[1, 4]
+m2_1 <- cpts_temp1[1, 5]
+
+p1 <- ggplot(asos_station1, aes(ym_date, avg_sped, group = 1)) + 
+  geom_line(col = "grey", size = 1.25) +
+  xlim(ymd("1980-01-01"), ymd("2015-01-01")) + 
+  scale_x_date(date_labels = date_labels, breaks = date_breaks) + 
+  ggtitle("Kodiak Municipal Airport") + 
+  geom_vline(xintercept = x1_start1, col = "gray50", 
+             lty = 3, size = 1) + 
+  geom_vline(xintercept = x2_end1, col = "gray50", 
+             lty = 3, size = 1) + 
+  geom_vline(xintercept = x1_end1, 
+             col = "goldenrod1", size = 3) + 
+  geom_segment(aes(x = x1_start1, xend = x1_end1, y = m1_1, yend = m1_1),
+               col = "dodgerblue4", size = 2) +
+  geom_segment(aes(x = x1_end1, xend = x2_end1, y = m2_1, yend = m2_1),
+               col = "dodgerblue4", size = 2) +
+  geom_line(aes(ym_date, avg_sped_adj, group = 1), size = 1.25) + 
+  scale_y_continuous(limits = c(5, 25), breaks = c(5, 10, 15, 20, 25)) +
+  theme_bw() + 
+  theme(panel.grid = element_blank(), 
+        axis.title = element_blank(),
+        plot.title = element_text(size = 30),
+        axis.text = element_text(color = "black", size = 25),
+        axis.text.y = element_text(margin = margin(l = 10, r = 5))) 
+
+# second station (two discontinuities)
+# display time series for PAED and PAFA
+stid2 <- "PAEI"
+asos_station2 <- asos_monthly %>% 
+  filter(stid == stid2)
+
+# changepoint info
+cpts_temp2 <- cpts_df[cpts_df$stid == stid2, ]
+# starting x for mean 1 horizontal line
+x1_start2 <- ymd("1980-01-01")
+x1_end2 <- cpts_temp2[1, 2]
+x2_end2 <- cpts_temp2[1, 3]
+x3_end2 <- ymd("2015-01-01")
+m1_2 <- cpts_temp2[1, 4]
+m2_2 <- cpts_temp2[1, 5]
+m3_2 <- cpts_temp2[1, 6]
+
+p2 <- ggplot(asos_station2, aes(ym_date, avg_sped, group = 1)) + 
+  geom_line(col = "grey", size = 1.25) +
+  xlim(ymd("1980-01-01"), ymd("2015-01-01")) + 
+  scale_x_date(date_labels = date_labels, breaks = date_breaks) + 
+  ggtitle("Eielson AFB") + 
+  geom_vline(xintercept = x1_start2, col = "gray50", 
+             lty = 3, size = 1) + 
+  geom_vline(xintercept = x3_end2, col = "gray50", 
+             lty = 3, size = 1) + 
+  geom_vline(xintercept = x1_end2, 
+             col = "goldenrod1", size = 3) + 
+  geom_vline(xintercept = c(x1_end2, x2_end2), 
+             col = "goldenrod1", size = 3) + 
+  geom_segment(aes(x = x1_start2, xend = x1_end2, y = m1_2, yend = m1_2),
+               col = "dodgerblue4", size = 2) +
+  geom_segment(aes(x = x1_end2, xend = x2_end2, y = m2_2, yend = m2_2),
+               col = "dodgerblue4", size = 2) +
+  geom_segment(aes(x = x2_end2, xend = x3_end2, y = m3_2, yend = m3_2),
+               col = "dodgerblue4", size = 2) +
+  geom_line(aes(ym_date, avg_sped_adj, group = 1), size = 1.25) +
+  scale_y_continuous(limits = c(0, 8), breaks = c(0, 2, 4, 6, 8)) +
+  theme_bw() + 
+  theme(panel.grid = element_blank(),
+        axis.title = element_blank(),
+        axis.text = element_text(color = "black",
+                                 size = 25),
+        axis.text.y = element_text(margin = margin(l = 25, r = 5)),
+        plot.title = element_text(size = 30)) 
+
+p <- arrangeGrob(p1, p2, nrow = 2, 
+                 left = textGrob("Avg Wind Speed (mph)", 
+                                 gp = gpar(fontsize = 30),
+                                 rot = 90),
+                 bottom = textGrob("Time", gp = gpar(fontsize = 30)))
+
+fn <- "figures/agu19_poster/figure2.jpeg"
+ggsave(fn, p, width = 18, height = 6, dpi = 500)
+
+#------------------------------------------------------------------------------
