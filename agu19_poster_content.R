@@ -96,7 +96,7 @@ p <- ggplot(data = ak_sf) + geom_sf(fill = "cornsilk", size = 0.5) +
                   min.segment.length = 0, box.padding = 0) +
   geom_sf(data = coords, shape = 19, col = "dodgerblue4", size = 5) 
 
-fn <- "figures/agu19_poster/figure1.jpeg"
+fn <- "figures/agu19_poster/figure_1.jpeg"
 ggsave(fn, p, width = 13.81, height = 8, dpi = 500)
 
 #------------------------------------------------------------------------------
@@ -210,7 +210,134 @@ p <- arrangeGrob(p1, p2, nrow = 2,
                                  rot = 90),
                  bottom = textGrob("Time", gp = gpar(fontsize = 30)))
 
-fn <- "figures/agu19_poster/figure2.jpeg"
+fn <- "figures/agu19_poster/figure_2.jpeg"
 ggsave(fn, p, width = 18, height = 6, dpi = 500)
 
 #------------------------------------------------------------------------------
+
+#-- Fig 3 ERA & CM3 ECDFs -----------------------------------------------------
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+library(gridExtra)
+library(grid)
+
+# ggECDF_compare modified for manuscript
+ggECDF_compare <- function(obs, sim, sim_adj, p_tag = " ",
+                           sim_lab, obs_lab, cols = 1){
+  
+  df1 <- data.frame(sped = c(sim, obs),
+                    quality = c(rep("1", length(sim)),
+                                rep("2", length(obs))))
+  
+  df2 <- data.frame(sped = c(sim_adj, obs),
+                    quality = c(rep("1", length(sim_adj)),
+                                rep("2", length(obs))))
+  
+  # extract legend, code borrowed from SO (for sharing legend between plots)
+  # https://github.com/hadley/ggplot2/wiki/Share-a-legend-between-two-ggplot2-graphs
+  g_legend <- function(a.gplot){
+    tmp <- ggplot_gtable(ggplot_build(a.gplot))
+    leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+    legend <- tmp$grobs[[leg]]
+    return(legend)}
+  
+  # original data
+  xmax <- quantile(obs, probs = seq(0, 1, 1/500))[500] + 5
+  p1 <- ggplot(df1, aes(sped, color = quality)) + 
+    stat_ecdf(size = 1.5) + 
+    xlim(c(0, xmax)) + #scale_color_discrete(name = "  ", 
+    #                    labels = c(sim_lab, obs_lab)) + 
+    # ggtitle(p_title) +
+    # labs(tag = p_tag) +
+    theme_bw() + 
+    theme(legend.position = "top",
+          plot.title = element_text(vjust = -1),
+          axis.title = element_blank(),
+          panel.grid = element_blank(),
+          axis.text = element_text(size = 22,
+                                   color = "black"),
+          legend.text = element_text(size = 25),
+          legend.margin = margin(10, 0, 0, 0),
+          plot.margin = unit(c(2, 2, 9, 6), "mm"))
+  
+  if(cols == 1){
+    p1 <- p1 + scale_color_manual(values = c("goldenrod", "black"),
+                                  name = "   ",
+                                  labels = c(sim_lab, obs_lab))
+  } else {
+    p1 <- p1 + scale_color_manual(values = c("dodgerblue4", "goldenrod"),
+                                  name = "   ",
+                                  labels = c(sim_lab, obs_lab))
+  }
+  
+  # corrected data
+  p2 <- ggplot(df2, aes(sped, color = quality)) + 
+    stat_ecdf(size = 1.5) + 
+    xlim(c(0, xmax))  + #ggtitle(" ") + 
+    # labs(tag = "  ") +
+    theme_bw() +
+    theme(plot.title = element_text(vjust = -1),
+          axis.title = element_blank(),
+          panel.grid = element_blank(),
+          axis.text = element_text(size = 22,
+                                   color = "black"),
+          plot.margin = unit(c(2, 2, 9, 6), "mm"))
+  
+  if(cols == 1){
+    p2 <- p2 + scale_color_manual(values = c("goldenrod", "black"),
+                                  name = "   ",
+                                  labels = c(sim_lab, obs_lab))
+  } else {
+    p2 <- p2 + scale_color_manual(values = c("dodgerblue4", "goldenrod"),
+                                  name = "   ",
+                                  labels = c(sim_lab, obs_lab))
+  }
+  
+  # legend code adapted from:
+  # https://github.com/hadley/ggplot2/wiki/Share-a-legend-between-two-ggplot2-graphs
+  tmp <- ggplot_gtable(ggplot_build(p1))
+  leg <- which(sapply(tmp$grobs, function(x) x$name) == "guide-box")
+  mylegend <- tmp$grobs[[leg]]
+  
+  p <- arrangeGrob(mylegend,
+     arrangeGrob(p1 + theme(legend.position = "none"),
+                 p2 + theme(legend.position = "none"), 
+                 nrow = 1,
+                 bottom = textGrob("Wind Speed (mph)",
+                                   x = unit(0.5, "npc"),
+                                   vjust = -0.5,
+                                   gp = gpar(fontsize = 28)),
+                 left = textGrob("Cumulative Probability",
+                                 gp = gpar(fontsize = 28),
+                                 rot = 90, hjust = 0.35)),
+     nrow = 2, heights = c(1, 10))#,
+    # don't need A/B labels for now
+    # top = textGrob(p_tag,
+    #                x = unit(0.05, "npc"),
+    #                y = unit(0.30, "npc"), 
+    #                just = c("left", "top"),
+    #                gp = gpar(fontsize = 28)))
+  return(p)
+}
+
+asos <- readRDS("data/AK_ASOS_stations_adj/PANC.Rds") %>%
+  filter(t_round < ymd("2015-01-01"))
+era <- readRDS("data/ERA_stations_adj/PANC_era_adj.Rds") %>%
+  filter(ts < ymd("2015-01-01"))
+cm3 <- readRDS("data/CM3_stations_adj/PANC_cm3h_adj.Rds")
+
+p1 <- ggECDF_compare(asos$sped_adj, era$sped, era$sped_adj + 0.3, 
+                     "A", "ERA-Interim", "ASOS")
+
+obs2 <- era$sped_adj[era$ts < ymd("2006-01-01")]
+p2 <- ggECDF_compare(obs2, cm3$sped, cm3$sped_adj + 0.3,
+                     "B", "CM3 Historical", "ERA-Interim", 2)
+
+p <- arrangeGrob(p1, p2, nrow = 2)
+
+fn <- "figures/agu19_poster/figure_3.jpeg"
+ggsave(fn, p, width = 13.28, height = 15, dpi = 500)
+
+#------------------------------------------------------------------------------
+
