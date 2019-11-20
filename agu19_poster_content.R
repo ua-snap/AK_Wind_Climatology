@@ -23,7 +23,6 @@
 #   /figures/agu19_poster/figure_3.jpeg
 #   /figures/agu19_poster/figure_4.jpeg
 #   /figures/agu19_poster/figure_5.jpeg
-#   /figures/agu19_poster/figure_6.jpeg
 
 
 
@@ -333,11 +332,151 @@ p1 <- ggECDF_compare(asos$sped_adj, era$sped, era$sped_adj + 0.3,
 obs2 <- era$sped_adj[era$ts < ymd("2006-01-01")]
 p2 <- ggECDF_compare(obs2, cm3$sped, cm3$sped_adj + 0.3,
                      "B", "CM3 Historical", "ERA-Interim", 2)
-
-p <- arrangeGrob(p1, p2, nrow = 2)
+pmid <- ggplot() + theme(plot.margin = unit(c(0, 4, 0, 5), "mm"),
+                         panel.background = element_rect("white"))
+p <- arrangeGrob(p1, pmid, p2, ncol = 3, widths = c(10, 1, 10))
 
 fn <- "figures/agu19_poster/figure_3.jpeg"
-ggsave(fn, p, width = 13.28, height = 15, dpi = 500)
+#ggsave(fn, p, width = 13.28, height = 15, dpi = 500)
+ggsave(fn, p, width = 29, height = 7.5, dpi = 500)
 
 #------------------------------------------------------------------------------
 
+#-- Fig 4 t-test heatmap ------------------------------------------------------
+library(dplyr)
+library(ggplot2)
+
+source("helpers.R")
+
+stid_names <- read.csv("data/AK_ASOS_names_key.csv", stringsAsFactors = FALSE)
+
+cm3_monthly <- readRDS("data/CM3_clim_monthly.Rds")
+ccsm4_monthly <- readRDS("data/CCSM4_clim_monthly.Rds")
+
+stids <- stid_names$stid
+
+# CM3
+cm3_ttest <- lapply(stids, t_test_stid, cm3_monthly) %>%
+  bind_rows() 
+
+# CCSM4
+ccsm4_ttest <- lapply(stids, t_test_stid, ccsm4_monthly) %>%
+  bind_rows() 
+
+cm3_sig <- cm3_ttest %>% 
+  mutate(sig = if_else(p_val <= 0.05 & mean_x < mean_y, 
+                       "Future Signif. Higher", 
+                       "Future Signif. Lower"),
+         sig = if_else(p_val > 0.05, "No Signif. Difference", sig),
+         sig = factor(sig, levels = c("No Signif. Difference",
+                                      " ",
+                                      "Future Signif. Lower", 
+                                      "Future Signif. Higher")),
+         mo = factor(mo, levels = month.abb),
+         dsrc = factor("CM3", levels = c("CM3", "CCSM4"))) %>%
+  select(stid, sig, mo, dsrc)
+
+results_df <- ccsm4_ttest %>% 
+  mutate(sig = if_else(p_val <= 0.05 & mean_x < mean_y, 
+                       "Future Signif. Higher", 
+                       "Future Signif. Lower"),
+         sig = if_else(p_val > 0.05, "No Signif. Difference", sig),
+         sig = factor(sig, levels = c("No Signif. Difference",
+                                      " ",
+                                      "Future Signif. Lower", 
+                                      "Future Signif. Higher")),
+         mo = factor(mo, levels = month.abb),
+         dsrc = factor("CCSM4", levels = c("CM3", "CCSM4"))) %>%
+  select(stid, sig, mo, dsrc) %>%
+  bind_rows(cm3_sig) %>%
+  left_join(stid_names, by = "stid") %>%
+  select(pub_name, sig, mo, dsrc)
+
+# function to increase vertical spacing between legend keys
+# @clauswilke
+draw_key_polygon3 <- function(data, params, size) {
+  lwd <- min(data$size, min(size) / 4)
+  
+  grid::rectGrob(
+    width = grid::unit(0.6, "npc"),
+    height = grid::unit(0.6, "npc"),
+    gp = grid::gpar(
+      col = data$colour,
+      fill = alpha(data$fill, data$alpha),
+      lty = data$linetype,
+      lwd = lwd * .pt,
+      linejoin = "mitre"
+    ))
+}
+
+# register new key drawing function, 
+# the effect is global & persistent throughout the R session
+GeomTile$draw_key = draw_key_polygon3
+
+p <- ggplot(results_df, aes(y = reorder(pub_name, desc(pub_name)), x = mo)) +
+  geom_tile(aes(fill = sig, color = sig)) + 
+  scale_fill_manual(values = c("White", "white", "#358EDB", "#EBAD02"),
+                    drop = FALSE) + 
+  scale_color_manual(values = c("grey", "white", "grey", "grey"),
+                     drop = FALSE) +
+  scale_x_discrete(breaks = c("Jan", "Mar", "May", "Jul", "Sep", "Nov")) +
+  ylab("Location") + xlab("Month") + 
+  #labs(fill = "Significance\nat \u03B1 = 0.05") +
+  theme_bw() + 
+  theme(legend.position = "none",
+        axis.text = element_text(size = 14, color = "black"),
+        axis.title = element_text(size = 20), 
+        strip.background = element_blank(),
+        strip.text = element_text(size = 20,
+                                  margin = margin(c(1, 0, 1, 0))),
+        plot.background = element_rect(fill = "transparent", color = NA)) +
+  guides(fill = guide_legend(ncol = 2)) +
+  facet_wrap(~dsrc)
+
+fn <- "figures/agu19_poster/figure_4.png"
+ggsave(fn, p, height = 13.84, width = 7, dpi = 500, bg = "transparent")
+
+#------------------------------------------------------------------------------
+
+#-- Fig 5 Model Trends Barplots -----------------------------------------------
+library(ggplot2)
+
+mods <- c("CM3", "CCSM4")
+years <- c("1980-2014", "2065-2099")
+seasons <- c("cold", "warm")
+
+trends <- data.frame(mod = factor(rep(mods, each = 2), levels = mods),
+                     Period = factor(rep(years, 4), levels = years),
+                     season = factor(rep(seasons, each = 4), levels = seasons),
+                     count = c(102, 21, 95, 2, 13, 162, 18, 38))
+
+barfill <- c("#358EDB", "#EBAD02")
+barcols <- c("dodgerblue3", "darkgoldenrod")
+
+labels <- c(cold = "Cold Season\n(Dec - Mar)", warm = "Warm Season\n(Jun - Sep)")
+
+p <- ggplot(trends, aes(x = mod, y = count, color = Period, fill = Period)) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.85), 
+           width = 0.8) + 
+  facet_wrap(~season, labeller = labeller(season = labels)) + 
+  scale_fill_manual(values = barfill) +
+  scale_color_manual(values = barcols) +
+  scale_y_continuous(limits = c(0, 165), expand = c(0, 0)) +
+  xlab("Model") + ylab("Count (station-months)") +
+  theme_classic() + 
+  theme(axis.text = element_text(size = 16,
+                                 color = "black"),
+        axis.title = element_text(size = 20),
+        legend.text = element_text(size = 16),
+        legend.title = element_text(size = 20),
+        strip.text = element_text(size = 20, 
+                                  margin = margin(1, 0, 10, 0)),
+        strip.background = element_blank(),
+        plot.background = element_rect(fill = "transparent", color = NA),
+        panel.background = element_rect(fill = "transparent", color = NA),
+        legend.background = element_rect(fill = "transparent", color = NA))
+
+fn <- "figures/agu19_poster/figure_5.png"
+ggsave(fn, p, width = 9, height = 7, dpi = 500, bg = "transparent")
+
+#------------------------------------------------------------------------------
