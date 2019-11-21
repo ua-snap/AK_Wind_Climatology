@@ -442,11 +442,11 @@ ggsave(fn, p, height = 13.84, width = 7, dpi = 500, bg = "transparent")
 library(ggplot2)
 
 mods <- c("CM3", "CCSM4")
-years <- c("1980-2014", "2065-2099")
+years <- c("increase", "decrease")
 seasons <- c("cold", "warm")
 
 trends <- data.frame(mod = factor(rep(mods, each = 2), levels = mods),
-                     Period = factor(rep(years, 4), levels = years),
+                     Projected = factor(rep(years, 4), levels = years),
                      season = factor(rep(seasons, each = 4), levels = seasons),
                      count = c(102, 21, 95, 2, 13, 162, 18, 38))
 
@@ -455,7 +455,7 @@ barcols <- c("dodgerblue3", "darkgoldenrod")
 
 labels <- c(cold = "Cold Season\n(Dec - Mar)", warm = "Warm Season\n(Jun - Sep)")
 
-p <- ggplot(trends, aes(x = mod, y = count, color = Period, fill = Period)) +
+p <- ggplot(trends, aes(x = mod, y = count, color = Projected, fill = Projected)) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.85), 
            width = 0.8) + 
   facet_wrap(~season, labeller = labeller(season = labels)) + 

@@ -64,56 +64,55 @@ uv2wdws <- function(u,v) {
 #------------------------------------------------------------------------------
 
 #-- qMapWind ------------------------------------------------------------------
-# Custom quantile mapping function
-qMapWind <- function(obs = NULL, sim, 
-                     ret.deltas = FALSE, 
-                     use.deltas = NULL){
-
-  if(is.null(use.deltas)){
-    qn <- min(length(obs), length(sim))
-    qx <- quantile(sim, seq(0, 1, length.out = qn), type = 8)
-    qy <- quantile(obs, seq(0, 1, length.out = qn), type = 8)
-    q_deltas <- qx - qy
-  } else {
-    qx <- quantile(sim, seq(0, 1, length.out = length(use.deltas)), 
-                   type = 8)
-    q_deltas = use.deltas
-  }
-  
-  # bin "sim" observations into quantiles. Will use these indices to 
-  #   index deltas vector for adjustment
-  qi <- .bincode(sim, qx, include.lowest = TRUE)
-  
-  # duplicate quantiles are not represented in this binning,
-  #   need to represent for all deltas to be applied
-  dup_qx <- unique(qx[duplicated(qx)])
-  dup_qi <- sort(unique(qi[which(qx[qi + 1] %in% dup_qx)]))
-  last_dupi <- c((dup_qi - 1)[-1], length(qx))
-  dup_qi <- dup_qi + as.numeric(paste0("0.", last_dupi))
-  
-  # distribute duplicated quantile indices in place of repeated 
-  tempFun <- function(dup_qi, qi){
-    end <- as.integer(substring(round(dup_qi - trunc(dup_qi), 3), 3))
-    dup_qi <- trunc(dup_qi)
-    qij <- which(qi == dup_qi)
-    n <- length(qij)
-    qis <- rep(0, n)
-    suppressWarnings(qis[rep(TRUE, n)] <- dup_qi:end)
-    names(qis) <- qij
-    qis
-  }
-  # and replace qi's with these recycled indices
-  new_qi <- unlist(lapply(dup_qi, tempFun, qi))
-  qij <- as.integer(names(new_qi))
-  qi[qij] <- new_qi
-  
-  sim_adj <- sim - as.numeric(q_deltas)[qi]
-  # return adjusted
-  if(ret.deltas == TRUE){
-    return(list(deltas = q_deltas, sim_adj = sim_adj))
-  } else {return(sim_adj)}
-}
-
+# old quantile mapping function
+# qMapWind <- function(obs = NULL, sim, 
+#                      ret.deltas = FALSE, 
+#                      use.deltas = NULL){
+# 
+#   if(is.null(use.deltas)){
+#     qn <- min(length(obs), length(sim))
+#     qx <- quantile(sim, seq(0, 1, length.out = qn), type = 8)
+#     qy <- quantile(obs, seq(0, 1, length.out = qn), type = 8)
+#     q_deltas <- qx - qy
+#   } else {
+#     qx <- quantile(sim, seq(0, 1, length.out = length(use.deltas)), 
+#                    type = 8)
+#     q_deltas = use.deltas
+#   }
+#   
+#   # bin "sim" observations into quantiles. Will use these indices to 
+#   #   index deltas vector for adjustment
+#   qi <- .bincode(sim, qx, include.lowest = TRUE)
+#   
+#   # duplicate quantiles are not represented in this binning,
+#   #   need to represent for all deltas to be applied
+#   dup_qx <- unique(qx[duplicated(qx)])
+#   dup_qi <- sort(unique(qi[which(qx[qi + 1] %in% dup_qx)]))
+#   last_dupi <- c((dup_qi - 1)[-1], length(qx))
+#   dup_qi <- dup_qi + as.numeric(paste0("0.", last_dupi))
+#   
+#   # distribute duplicated quantile indices in place of repeated 
+#   tempFun <- function(dup_qi, qi){
+#     end <- as.integer(substring(round(dup_qi - trunc(dup_qi), 3), 3))
+#     dup_qi <- trunc(dup_qi)
+#     qij <- which(qi == dup_qi)
+#     n <- length(qij)
+#     qis <- rep(0, n)
+#     suppressWarnings(qis[rep(TRUE, n)] <- dup_qi:end)
+#     names(qis) <- qij
+#     qis
+#   }
+#   # and replace qi's with these recycled indices
+#   new_qi <- unlist(lapply(dup_qi, tempFun, qi))
+#   qij <- as.integer(names(new_qi))
+#   qi[qij] <- new_qi
+#   
+#   sim_adj <- sim - as.numeric(q_deltas)[qi]
+#   # return adjusted
+#   if(ret.deltas == TRUE){
+#     return(list(deltas = q_deltas, sim_adj = sim_adj))
+#   } else {return(sim_adj)}
+# }
 
 # Custom quantile mapping function
 qMapWind <- function(obs = NULL, sim, 
