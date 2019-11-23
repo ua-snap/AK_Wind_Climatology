@@ -10,9 +10,12 @@ library(ggplot2)
 library(tidyr)
 
 knitr::opts_chunk$set(root.dir = "..")
+knitr::opts_chunk$set(echo = FALSE, 
+                      warning = FALSE, 
+                      message = FALSE)
 # directories
 workdir <- knitr::opts_chunk$get("root.dir")
-datadir <- file.path(workdir, "data")
+datadir <- file.path(workdir, "AK_Wind_Climatology_aux/data")
 asos_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
 era_adj_dir <- file.path(datadir, "ERA_stations_adj")
 

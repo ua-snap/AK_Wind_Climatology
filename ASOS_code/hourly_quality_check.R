@@ -10,12 +10,12 @@
 #   save df of which observations removed and why
 #
 # Output files:
-#   /data/all_stids.Rds
-#   /data/AK_ASOS_stations_raw/"stid"_raw.Rds
-#   /data/AK_ASOS_stations_qc/"stid"_qc.Rds
-#   /data/AK_ASOS_NA.Rds
-#   /data/AK_ASOS_excess.Rds
-#   /data/AK_ASOS_bad_quality.Rds
+#   AK_Wind_Climatology_aux/data/all_stids.Rds
+#   AK_Wind_Climatology_aux/data/AK_ASOS_stations_raw/"stid"_raw.Rds
+#   AK_Wind_Climatology_aux/data/AK_ASOS_stations_qc/"stid"_qc.Rds
+#   AK_Wind_Climatology_aux/data/AK_ASOS_NA.Rds
+#   AK_Wind_Climatology_aux/data/AK_ASOS_excess.Rds
+#   AK_Wind_Climatology_aux/data/AK_ASOS_bad_quality.Rds
 
 
 
@@ -24,13 +24,11 @@ library(data.table)
 library(dplyr)
 library(lubridate)
 
-workdir <- getwd()
-datadir <- file.path(workdir, "data")
+datadir <- "../AK_Wind_Climatology_aux/data/"
 asos_raw_dir <- file.path(datadir, "AK_ASOS_stations_raw")
 asos_qc_dir <- file.path(datadir, "AK_ASOS_stations_qc")
 # all stations path
-asos_path <- file.path(datadir, 
-                       "AK_ASOS_all_stations_wind_19700101_to_20190528.txt")
+asos_path <- "F:/raw_data/AK_Wind_Climatology/AK_ASOS_all_stations_wind_19700101_to_20190528.txt")
 # only concerned with wind speed and drct for now
 select_cols <- c("station", "valid", "drct", "sped")
 asos <- fread(asos_path, select = select_cols)

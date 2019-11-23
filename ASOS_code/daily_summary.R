@@ -3,7 +3,7 @@
 # Summarize wind speeds by day, using quality-controlled ASOS data
 #
 # Output files:
-#   /data/AK_ASOS_daily_all_stations_19700101_to_20190528.Rds
+#   AK_Wind_Climatology_aux/data/AK_ASOS_daily_all_stations_19700101_to_20190528.Rds
 
 
 
@@ -11,8 +11,7 @@
 library(dplyr)
 library(lubridate)
 
-workdir <- getwd()
-datadir <- file.path(workdir, "data")
+datadir <- "../AK_Wind_Climatology_aux/data/"
 asos_qc_dir <- file.path(datadir, "AK_ASOS_stations_qc")
 # station ids
 stids_path <- file.path(datadir, "all_stids.Rds")

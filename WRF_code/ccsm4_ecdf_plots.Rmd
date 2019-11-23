@@ -1,14 +1,14 @@
 ---
-title: "GFDL CM3 Quantile Mapping Assessment"
+title: "CCSM4 Quantile Mapping Validation"
 output: pdf_document
 ---
-
+### ECDFs before/after adjustment via quantile mapping
 ```{r setup, echo = FALSE, out.height = "25%", warning = FALSE, message = FALSE}
 knitr::opts_knit$set(root.dir = "../..")
 # directories
 workdir <- knitr::opts_knit$get("root.dir")
-datadir <- file.path(workdir, "data")
-figdir <- file.path(workdir, "figures")
+datadir <- file.path(workdir, "AK_Wind_Climatology_aux/data")
+figdir <- file.path(workdir, "AK_Wind_Climatology_aux/figures")
 ecdf_dir <- file.path(figdir, "ccsm4_adj_ecdfs")
 ecdf_paths <- list.files(ecdf_dir, full.names = TRUE)
 

@@ -9,9 +9,9 @@
 #   Indicate by color Tier 1 vs Tier 2
 # 
 # Output files:
-#   /data/AK_ASOS_select_stations.Rds
-#   /data/AK_ASOS_stations_meta_succ.Rds
-#   /figures/AK_ASOS_select_locations.png
+#   AK_Wind_Climatology_aux/data/AK_ASOS_select_stations.Rds
+#   AK_Wind_Climatology_aux/data/AK_ASOS_stations_meta_succ.Rds
+#   AK_Wind_Climatology_aux/figures/AK_ASOS_select_locations.png
 
 
 
@@ -23,9 +23,8 @@ library(ggrepel)
 library(sf)
 library(USAboundaries)
 
-workdir <- getwd()
-datadir <- file.path(workdir, "data")
-figdir <- file.path(workdir, "figures")
+datadir <- "../AK_Wind_Climatology_aux/data"
+figdir <- "../AK_Wind_Climatology_aux/figures/"
 asos_qc_dir <- file.path(datadir, "AK_ASOS_stations_qc")
 # daily data
 asos_daily_path <- file.path(datadir, 

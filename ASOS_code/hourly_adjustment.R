@@ -10,10 +10,10 @@
 #   fill rows with blank data, save csv's
 #
 # Output files:
-#   /data/AK_ASOS_stations_adj/"stids".Rds
-#   /data/AK_ASOS_stations_adj/cpts_df.Rds
-#   /data/AK_ASOS_stations_adj_csv/"stids".csv
-#   /data/AK_ASOS_changepoint_info.csv
+#   AK_Wind_Climatology_aux/data/AK_ASOS_stations_adj/"stid".Rds
+#   AK_Wind_Climatology_aux/data/AK_ASOS_stations_adj/cpts_df.Rds
+#   AK_Wind_Climatology_aux/data/AK_ASOS_stations_adj_csv/"stid".csv
+#   AK_Wind_Climatology_aux/data/AK_ASOS_changepoint_info.csv
 
 
 
