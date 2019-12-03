@@ -111,10 +111,10 @@ library(gridExtra)
 library(grid)
 
 # select/adj data summarized by month
-monthly_adj_path <- "data/AK_ASOS_monthly_select_adj_19800101_to_20150101.Rds"
+monthly_adj_path <- "../AK_Wind_Climatology_aux/data/AK_ASOS_monthly_select_adj_19800101_to_20150101.Rds"
 asos_monthly <- readRDS(monthly_adj_path)
 # changepoints
-cpts_df <- readRDS("data/AK_ASOS_stations_adj/cpts_df.Rds")
+cpts_df <- readRDS("../AK_Wind_Climatology_aux/data/AK_ASOS_stations_adj/cpts_df.Rds")
 
 # x scale to be used for both plots
 date_labels <- c("1980", "1985", "1990", "1995", 
@@ -212,7 +212,7 @@ p <- arrangeGrob(p1, p2, nrow = 2,
                                  rot = 90),
                  bottom = textGrob("Time", gp = gpar(fontsize = 30)))
 
-fn <- "figures/agu19_poster/figure_2.jpeg"
+fn <- "../AK_Wind_Climatology_aux/figures/agu19_poster/figure_2.jpeg"
 ggsave(fn, p, width = 18, height = 6, dpi = 500)
 
 #------------------------------------------------------------------------------
@@ -323,11 +323,11 @@ ggECDF_compare <- function(obs, sim, sim_adj, p_tag = " ",
   return(p)
 }
 
-asos <- readRDS("data/AK_ASOS_stations_adj/PANC.Rds") %>%
+asos <- readRDS("../AK_Wind_Climatology_aux/data/AK_ASOS_stations_adj/PANC.Rds") %>%
   filter(t_round < ymd("2015-01-01"))
-era <- readRDS("data/ERA_stations_adj/PANC_era_adj.Rds") %>%
+era <- readRDS("../AK_Wind_Climatology_aux/data/ERA_stations_adj/PANC_era_adj.Rds") %>%
   filter(ts < ymd("2015-01-01"))
-cm3 <- readRDS("data/CM3_stations_adj/PANC_cm3h_adj.Rds")
+cm3 <- readRDS("../AK_Wind_Climatology_aux/data/CM3_stations_adj/PANC_cm3h_adj.Rds")
 
 p1 <- ggECDF_compare(asos$sped_adj, era$sped, era$sped_adj + 0.3, 
                      "A", "ERA-Interim", "ASOS")
@@ -339,7 +339,7 @@ pmid <- ggplot() + theme(plot.margin = unit(c(0, 4, 0, 5), "mm"),
                          panel.background = element_rect("white"))
 p <- arrangeGrob(p1, pmid, p2, ncol = 3, widths = c(10, 1, 10))
 
-fn <- "figures/agu19_poster/figure_3.jpeg"
+fn <- "../AK_Wind_Climatology_aux/figures/agu19_poster/figure_3.jpeg"
 #ggsave(fn, p, width = 13.28, height = 15, dpi = 500)
 ggsave(fn, p, width = 29, height = 7.5, dpi = 500)
 
@@ -351,10 +351,10 @@ library(ggplot2)
 
 source("helpers.R")
 
-stid_names <- read.csv("data/AK_ASOS_names_key.csv", stringsAsFactors = FALSE)
+stid_names <- read.csv("../AK_Wind_Climatology_aux/data/AK_ASOS_names_key.csv", stringsAsFactors = FALSE)
 
-cm3_monthly <- readRDS("data/CM3_clim_monthly.Rds")
-ccsm4_monthly <- readRDS("data/CCSM4_clim_monthly.Rds")
+cm3_monthly <- readRDS("../AK_Wind_Climatology_aux/data/CM3_clim_monthly.Rds")
+ccsm4_monthly <- readRDS("../AK_Wind_Climatology_aux/data/CCSM4_clim_monthly.Rds")
 
 stids <- stid_names$stid
 
@@ -423,6 +423,7 @@ p <- ggplot(results_df, aes(y = reorder(pub_name, desc(pub_name)), x = mo)) +
   scale_color_manual(values = c("grey", "white", "grey", "grey"),
                      drop = FALSE) +
   scale_x_discrete(breaks = c("Jan", "Mar", "May", "Jul", "Sep", "Nov")) +
+  scale_y_discrete(position = "right") +
   ylab("Location") + xlab("Month") + 
   #labs(fill = "Significance\nat \u03B1 = 0.05") +
   theme_bw() + 
@@ -436,7 +437,7 @@ p <- ggplot(results_df, aes(y = reorder(pub_name, desc(pub_name)), x = mo)) +
   guides(fill = guide_legend(ncol = 2)) +
   facet_wrap(~dsrc)
 
-fn <- "figures/agu19_poster/figure_4.png"
+fn <- "../AK_Wind_Climatology_aux/figures/agu19_poster/figure_4.png"
 ggsave(fn, p, height = 13.84, width = 7, dpi = 500, bg = "transparent")
 
 #------------------------------------------------------------------------------
@@ -479,7 +480,7 @@ p <- ggplot(trends, aes(x = mod, y = count, color = Projected, fill = Projected)
         panel.background = element_rect(fill = "transparent", color = NA),
         legend.background = element_rect(fill = "transparent", color = NA))
 
-fn <- "figures/agu19_poster/figure_5.png"
+fn <- "../AK_Wind_Climatology_aux/figures/agu19_poster/figure_5.png"
 ggsave(fn, p, width = 9, height = 7, dpi = 500, bg = "transparent")
 
 #------------------------------------------------------------------------------
