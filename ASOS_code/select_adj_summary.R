@@ -12,8 +12,7 @@
 library(dplyr)
 library(lubridate)
 
-workdir <- getwd()
-datadir <- file.path(workdir, "data")
+datadir <- "../AK_Wind_Climatology_aux/data"
 asos_adj_dir <- file.path(datadir, "AK_ASOS_stations_adj")
 # select station ids
 select_stations_path <- file.path(datadir, "AK_ASOS_select_stations.Rds")
