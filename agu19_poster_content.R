@@ -35,7 +35,7 @@ library(sf)
 library(USAboundaries)
 
 # load select stations
-select_stations <- readRDS("data/AK_ASOS_select_stations.RDS")
+select_stations <- readRDS("../AK_Wind_Climatology_Aux/data/AK_ASOS_select_stations.RDS")
 stids <- select_stations$stid
 # alaska sf object
 alaska <- us_states(states = "AK", resolution = "high")
@@ -85,18 +85,21 @@ nudy <- c(100000, 0, -300000, 200000, -300000, 100000, -300000, 200000)
 
 # plot
 p <- ggplot(data = ak_sf) + geom_sf(fill = "cornsilk", size = 0.5) +
-  xlab("Lon") + ylab("Lat") +
   theme_bw() +
-  theme(text = element_text(color = "black", size = 20),
-        axis.text = element_text(color = "black", size = 30),
-        axis.title = element_text(size = 40)) +
+  theme(
+    text = element_text(color = "black", size = 20),
+    axis.text = element_blank(),
+    axis.title = element_blank(),
+    axis.ticks = element_blank(),
+    plot.margin = margin(0, 0, 0, 0, "pt")
+  ) +
   geom_text_repel(data = lab_coords, aes(x = lonl, y = latl, label = site),
                   nudge_x = nudx, nudge_y = nudy, size = 9, segment.size = 0.4,
                   min.segment.length = 0, box.padding = 0) +
   geom_sf(data = coords, shape = 19, col = "dodgerblue4", size = 5) 
 
-fn <- "figures/agu19_poster/figure_1.jpeg"
-ggsave(fn, p, width = 13.81, height = 8, dpi = 500)
+fn <- "../AK_Wind_Climatology_aux/figures/agu19_poster/figure_1.jpeg"
+ggsave(fn, p, width = 13.81, height = 7.4, dpi = 500)
 
 #------------------------------------------------------------------------------
 
