@@ -27,7 +27,7 @@ wrap_qMap <- function(i) {
     filter(t_round < hp)
   sim <- era_adj[[i]] %>%
     filter(ts < hp)
-  qmap_df <- qMap(obs$sped_adj, sim$sped)
+  qmap_df <- qMap(obs$sped_adj, sim$sped, zero_trunc = TRUE)
   sim$sped_adj <- qmap_df$sim_adj
   sim
 }

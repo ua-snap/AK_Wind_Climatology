@@ -6,14 +6,15 @@ wrap_qMap_his <- function(i, gcm = "CM3") {
     filter(ts < hp[2])
   sim <- wrf_wdws[[paste0(gcm, "h")]][[i]] %>%
     filter(ts >= hp[1])
-  qMap(obs$sped_adj, sim$ws, ret.deltas = TRUE)
+  qMap(obs$sped_adj, sim$ws, ret.deltas = TRUE, zero_trunc = TRUE)
 }
 
 # qMap function to be mclapply'd to future output
 wrap_qMap_fut <- function(i, gcm = "CM3") {
   qMap(
     sim = wrf_wdws[[paste0(gcm, "f")]][[i]]$ws,
-    use.deltas = wrf_adj[[paste0(gcm, "h")]][[i]]$deltas
+    use.deltas = wrf_adj[[paste0(gcm, "h")]][[i]]$deltas,
+    zero_trunc = TRUE
   )
 }
 
