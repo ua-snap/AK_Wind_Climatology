@@ -47,7 +47,7 @@ def preprocess_gcm(gcm_fns):
             for dur_thr in thresholds[1]:
                 keep = hw_counts[hw_counts['index'] > (dur_thr - 1)].index.values
                 d_hwe = d_thr[d_thr["hw_id"].isin(keep)]
-                d_hwe = d_hwe.drop(["ws", "gcm_stid"], axis=1)
+                d_hwe = d_hwe.drop(["ws"], axis=1)
                 d_hwe = d_hwe.groupby(["hw_id", "gcm", "stid"], as_index=False).agg({"wd": mean_angle, "ts": "first"})
                 d_hwe["ts"] = list(map(int, d_hwe["ts"].str[:4].values))
                 d_hwe = d_hwe[d_hwe["ts"] < 2100]
