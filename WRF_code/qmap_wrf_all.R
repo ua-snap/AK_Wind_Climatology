@@ -6,14 +6,15 @@ wrap_qMap_his <- function(i, gcm = "CM3") {
     filter(ts < hp[2])
   sim <- wrf_wdws[[paste0(gcm, "h")]][[i]] %>%
     filter(ts >= hp[1])
-  qMap(obs$sped_adj, sim$ws, ret.deltas = TRUE)
+  qMap(obs$sped_adj, sim$ws, ret.deltas = TRUE, zero_trunc = TRUE)
 }
 
 # qMap function to be mclapply'd to future output
 wrap_qMap_fut <- function(i, gcm = "CM3") {
   qMap(
     sim = wrf_wdws[[paste0(gcm, "f")]][[i]]$ws,
-    use.deltas = wrf_adj[[paste0(gcm, "h")]][[i]]$deltas
+    use.deltas = wrf_adj[[paste0(gcm, "h")]][[i]]$deltas,
+    zero_trunc = TRUE
   )
 }
 
@@ -65,46 +66,61 @@ te <- system.time({
 cat(paste0("WRF output loaded, ", round(te[3], 1), " seconds\n"))
 
 # lists must be in same order
-stopifnot(names(wrf_wdws$CM3h) == names(era_adj))
+wrf_stids <- names(wrf_wdws$CM3h)
+stopifnot(wrf_stids == names(era_adj))
 
 # start and end dates for historical period
 hp <- c(ymd("1980-01-01"), ymd("2006-01-01"))
 
 wrf_adj <- list()
 cat("quantile-mapping CM3 historical...\n")
-te <- system.time(
+te <- system.time({
   wrf_adj$CM3h <- parallel::mclapply(
     seq_along(wrf_wdws$CM3h), wrap_qMap_his, mc.cores = 32
   )
-)
+  attr(wrf_adj$CM3h, "ts") <- wrf_wdws$CM3h$PAAQ %>% 
+    filter(ts >= hp[1]) %>%
+    pull(ts)
+})
 cat(paste0("CM3 historical output adjusted, ", round(te[3], 1), " seconds\n"))
 
 cat("quantile-mapping CCSM4 historical...\n")
-te <- system.time(
+te <- system.time({
   wrf_adj$CCSM4h <- parallel::mclapply(
     seq_along(wrf_wdws$CCSM4h), wrap_qMap_his, gcm = "CCSM4", mc.cores = 32
   )
-)
+  attr(wrf_adj$CCSM4h, "ts") <- wrf_wdws$CCSM4h$PAAQ %>% 
+    filter(ts >= hp[1]) %>%
+    pull(ts)
+})
 cat(paste0("CCSM4 historical output adjusted, ", round(te[3], 1), " seconds\n"))
 
 # quantile map projected output
 cat("quantile-mapping CM3 future...\n")
-te <- system.time(
+te <- system.time({
   wrf_adj$CM3f <- parallel::mclapply(
     seq_along(wrf_wdws$CM3f), wrap_qMap_fut, mc.cores = 32
   )
-)
+  attr(wrf_adj$CM3f, "ts") <- wrf_wdws$CM3f$PAAQ %>% 
+    pull(ts)
+})
 cat(paste0("CM3 future output adjusted, ", round(te[3], 1), " seconds\n"))
 
 cat("quantile-mapping CCSM4 future...\n")
-te <- system.time(
+te <- system.time({
   wrf_adj$CCSM4f <- parallel::mclapply(
     seq_along(wrf_wdws$CCSM4f), wrap_qMap_fut, gcm = "CCSM4", mc.cores = 32
   )
-)
+  attr(wrf_adj$CCSM4f, "ts") <- wrf_wdws$CCSM4f$PAAQ %>% 
+    pull(ts)
+})
 cat(paste0("CCSM4 future output adjusted, ", round(te[3], 1), " seconds\n"))
 
 # save WRF otput
+wrf_adj <- lapply(wrf_adj, function(gcm) {
+  names(gcm) <- wrf_stids
+  gcm
+})
 cat("Saving adjusted WRF GCM data\n")
 te <- system.time({
   wrf_fn <- "../AK_Wind_Climatology_aux/data/wrf_adj.Rds"
