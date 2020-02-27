@@ -13,16 +13,9 @@ def preprocess_gcm(gcm_fns):
             return x
 
     thresholds = [list(range(25, 55, 5)), [1, 6, 12, 24, 48]]
-    # initialize dict to hold DataFrames (30 needed)
-    # keys named according to ws_thr, dur_thr pair, 
-    #   e.g., 25_1 for ws_thr == 25, dur_thr == 1
-    result_di = {}
-    colnames = ["hw_id", "gcm", "stid", "wd", "ts"]
-    x = np.array(thresholds[0])
-    x = x.repeat(5)
-    y = thresholds[1] * 6
-    for x, y in zip(x, y):
-        result_di[str(x) + "_" + str(y)] = pd.DataFrame(columns = colnames)
+    # initialize DataFrame for GCM
+    colnames = ["hw_id", "gcm", "stid", "wd", "ts", "ws_thr", "dur_thr"]
+    result = pd.DataFrame(columns = colnames)
     # initialize dict of year values representing 20-year periods (for lookup)
     grp_yrs = list(range(1980, 2120, 20))
     yrs_di = dict.fromkeys(list(range(grp_yrs[0], grp_yrs[1])), grp_yrs[0])
@@ -47,16 +40,17 @@ def preprocess_gcm(gcm_fns):
             for dur_thr in thresholds[1]:
                 keep = hw_counts[hw_counts['index'] > (dur_thr - 1)].index.values
                 d_hwe = d_thr[d_thr["hw_id"].isin(keep)]
-                d_hwe = d_hwe.drop(["ws"], axis=1)
+                d_hwe = d_hwe.drop(["ws", "gcm_stid"], axis=1)
                 d_hwe = d_hwe.groupby(["hw_id", "gcm", "stid"], as_index=False).agg({"wd": mean_angle, "ts": "first"})
                 d_hwe["ts"] = list(map(int, d_hwe["ts"].str[:4].values))
                 d_hwe = d_hwe[d_hwe["ts"] < 2100]
                 # map year groups
                 d_hwe["ts"] = d_hwe.ts.map(yrs_di)
-                # concat with appropriate DF
-                key = str(ws_thr) + "_" + str(dur_thr)
-                result_di[key] = result_di[key].append(d_hwe, ignore_index = True)
-    return result_di
+                # add threshold columns
+                d_hwe["ws_thr"] = ws_thr
+                d_hwe["dur_thr"] = dur_thr
+                result = result.append(d_hwe, ignore_index=True)
+    return result
 
 # preprocess both models and save files
 def preprocess_stations(fn_lst):
@@ -72,15 +66,10 @@ def preprocess_stations(fn_lst):
     ccsm4 = preprocess_gcm(fn_lst[1])
     print("CCSM4 output preprocessed, time elapsed: " + str(round(time.clock() - tic, 2)) + "s")
 
-    def save_dfs(di, gcm):
-        for df in di:
-            fp = out_dir + gcm + "_" + df + ".csv" 
-            di[df].to_csv(fp, index=False)
-
     print("Saving files")
     tic = time.clock()
-    save_dfs(cm3, "CM3")
-    save_dfs(ccsm4, "CCSM4")
+    cm3.to_csv(out_dir + "CM3_hwe.csv")
+    ccsm4.to_csv(out_dir + "CCSM4_hwe.csv")
     print("Preprocessed data files saved, time elapsed: " + str(round(time.clock() - tic, 2)) + "s")
 
 import pandas as pd
