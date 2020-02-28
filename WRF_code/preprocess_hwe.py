@@ -3,18 +3,20 @@
 #   based on 6 wind speed thresholds and 5 duration thresholds (30 files per GCM)
 
 # preprocess all sites for a particular GCM
-def preprocess_gcm(gcm_fns):
+# ignore_era: ignore ERA output (e.g. if was included with first GCM and combining
+#   both DataFrames, will prevent duplicates)
+def preprocess_gcm(gcm_fns, ignore_era=False):
     # calculate mean angle (input/output scale: [0, 360))
     def mean_angle(deg):
-        x = round(degrees(phase(sum(rect(1, radians(d)) for d in deg)/len(deg))), 2)
+        x = degrees(phase(sum(rect(1, radians(d)) for d in deg)/len(deg)))
         if x < 0:
-            return 360 + x
+            return round(360 + x, 2)
         else:
-            return x
+            return round(x, 2)
 
     thresholds = [list(range(25, 55, 5)), [1, 6, 12, 24, 48]]
     # initialize DataFrame for GCM
-    colnames = ["hw_id", "gcm", "stid", "wd", "ts", "ws_thr", "dur_thr"]
+    colnames = ["gcm", "stid", "wd", "ts", "ws_thr", "dur_thr"]
     result = pd.DataFrame(columns = colnames)
     # initialize dict of year values representing 20-year periods (for lookup)
     grp_yrs = list(range(1980, 2120, 20))
@@ -24,6 +26,9 @@ def preprocess_gcm(gcm_fns):
 
     for fn in gcm_fns:
         d = pd.read_csv(os.path.join(directory, fn))
+        # remove ERA observations if requested
+        if ignore_era == True:
+            d = d[d["gcm"] != "ERA"]
         # iterate through ws thresholds, compute DF with all potential hwes
         for ws_thr in thresholds[0]:
             d_thr = d.copy()
@@ -49,12 +54,13 @@ def preprocess_gcm(gcm_fns):
                 # add threshold columns
                 d_hwe["ws_thr"] = ws_thr
                 d_hwe["dur_thr"] = dur_thr
+                d_hwe = d_hwe.drop("hw_id", 1)
                 result = result.append(d_hwe, ignore_index=True)
     return result
 
 # preprocess both models and save files
 def preprocess_stations(fn_lst):
-    out_dir = "../data/cw/wrf_hwe/"
+    out_dir = "../data/cw/"
 
     print("Preprocessing CM3 output")
     tic = time.clock()
@@ -63,13 +69,13 @@ def preprocess_stations(fn_lst):
     
     print("Preprocessing CCSM4 output")
     tic = time.clock()
-    ccsm4 = preprocess_gcm(fn_lst[1])
+    ccsm4 = preprocess_gcm(fn_lst[1], ignore_era=True)
     print("CCSM4 output preprocessed, time elapsed: " + str(round(time.clock() - tic, 2)) + "s")
 
     print("Saving files")
     tic = time.clock()
-    cm3.to_csv(out_dir + "CM3_hwe.csv")
-    ccsm4.to_csv(out_dir + "CCSM4_hwe.csv")
+    gcm = cm3.append(ccsm4, ignore_index=True)
+    gcm.to_csv(out_dir + "WRF_hwe.csv", index=False)
     print("Preprocessed data files saved, time elapsed: " + str(round(time.clock() - tic, 2)) + "s")
 
 import pandas as pd
