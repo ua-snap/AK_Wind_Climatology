@@ -4,3 +4,5 @@
 .Ruserdata
 .ipynb_checkpoints/
 preprocess_wrf_scratch.ipynb
+.DS_Store
+._*
